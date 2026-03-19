@@ -1,34 +1,96 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Additional App specific styles */
+
+/* Canvas grid background */
+.canvas-grid {
+    background-image: 
+        linear-gradient(to right, hsl(220 13% 91% / 0.5) 1px, transparent 1px),
+        linear-gradient(to bottom, hsl(220 13% 91% / 0.5) 1px, transparent 1px);
+    background-size: 20px 20px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+/* Power BI Gold accent */
+.pbi-gold {
+    color: #F2C811;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+.pbi-gold-bg {
+    background-color: #F2C811;
 }
 
-.App-link {
-    color: #61dafb;
+/* Component type colors */
+.component-bar { --component-color: #2563EB; }
+.component-line { --component-color: #10B981; }
+.component-pie { --component-color: #8B5CF6; }
+.component-donut { --component-color: #EC4899; }
+.component-area { --component-color: #14B8A6; }
+.component-scatter { --component-color: #F59E0B; }
+.component-treemap { --component-color: #6366F1; }
+.component-gauge { --component-color: #EF4444; }
+.component-kpi { --component-color: #2563EB; }
+.component-table { --component-color: #6B7280; }
+.component-matrix { --component-color: #4B5563; }
+.component-slicer { --component-color: #9CA3AF; }
+.component-map { --component-color: #059669; }
+
+/* Page tab styles */
+.page-tab {
+    @apply px-4 py-2 text-sm font-medium border-b-2 border-transparent transition-colors;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.page-tab:hover {
+    @apply bg-muted/50;
+}
+
+.page-tab.active {
+    @apply border-primary text-primary;
+}
+
+/* Properties panel input groups */
+.property-group {
+    @apply space-y-3 pb-4 border-b border-border;
+}
+
+.property-group:last-child {
+    @apply border-b-0 pb-0;
+}
+
+.property-label {
+    @apply text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5 block;
+}
+
+/* Export modal preview */
+.export-preview {
+    @apply border rounded-lg overflow-hidden bg-white;
+    aspect-ratio: 16 / 9;
+}
+
+/* Landing page hero */
+.hero-gradient {
+    background: linear-gradient(135deg, hsl(220 14% 96%) 0%, white 100%);
+}
+
+/* Sidebar component item */
+.sidebar-component-item {
+    @apply flex items-center gap-3 p-3 rounded-lg border bg-white cursor-grab transition-all;
+}
+
+.sidebar-component-item:hover {
+    @apply border-primary/30 shadow-sm;
+}
+
+.sidebar-component-item:active {
+    @apply cursor-grabbing scale-[0.98];
+}
+
+/* Canvas wrapper */
+.canvas-wrapper {
+    @apply relative bg-white rounded-lg shadow-sm border overflow-hidden;
+    aspect-ratio: 16 / 9;
+    max-width: 100%;
+}
+
+/* Tooltip styles */
+.custom-tooltip {
+    @apply bg-foreground/90 text-background text-xs px-2 py-1 rounded;
+    backdrop-filter: blur(4px);
 }

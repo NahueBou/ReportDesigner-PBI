@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,10 +6,9 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone
-
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -19,52 +18,344 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
+# Create the main app
 app = FastAPI()
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# ============== MODELS ==============
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
+class ComponentPosition(BaseModel):
+    x: float = 0
+    y: float = 0
+    width: float = 200
+    height: float = 150
+
+class ComponentStyle(BaseModel):
+    backgroundColor: str = "#FFFFFF"
+    borderColor: str = "#E5E7EB"
+    borderWidth: int = 1
+    borderRadius: int = 4
+
+class ReportComponent(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: str  # bar_chart, line_chart, pie_chart, etc.
+    label: str
+    position: ComponentPosition = Field(default_factory=ComponentPosition)
+    style: ComponentStyle = Field(default_factory=ComponentStyle)
+    data: Dict[str, Any] = Field(default_factory=dict)
+
+class Annotation(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    text: str
+    position: ComponentPosition = Field(default_factory=ComponentPosition)
+    color: str = "#F59E0B"
+
+class ReportPage(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str = "Page 1"
+    components: List[ReportComponent] = Field(default_factory=list)
+    annotations: List[Annotation] = Field(default_factory=list)
+    layout: str = "free"  # free, executive, operational, detailed, analytical
+
+class Project(BaseModel):
+    model_config = ConfigDict(extra="ignore")
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    name: str
+    description: str = ""
+    pages: List[ReportPage] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    thumbnail: Optional[str] = None
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class ProjectCreate(BaseModel):
+    name: str
+    description: str = ""
 
-# Add your routes to the router instead of directly to app
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    pages: Optional[List[ReportPage]] = None
+    thumbnail: Optional[str] = None
+
+class PageCreate(BaseModel):
+    name: str = "New Page"
+    layout: str = "free"
+
+class PageUpdate(BaseModel):
+    name: Optional[str] = None
+    components: Optional[List[ReportComponent]] = None
+    annotations: Optional[List[Annotation]] = None
+    layout: Optional[str] = None
+
+# ============== HELPER FUNCTIONS ==============
+
+def serialize_datetime(obj):
+    """Convert datetime objects to ISO string for MongoDB storage"""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    return obj
+
+def deserialize_project(doc: dict) -> dict:
+    """Convert ISO strings back to datetime for response"""
+    if 'created_at' in doc and isinstance(doc['created_at'], str):
+        doc['created_at'] = datetime.fromisoformat(doc['created_at'])
+    if 'updated_at' in doc and isinstance(doc['updated_at'], str):
+        doc['updated_at'] = datetime.fromisoformat(doc['updated_at'])
+    return doc
+
+# ============== PROJECT ENDPOINTS ==============
+
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Power BI Mockup Tool API"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
+@api_router.get("/projects", response_model=List[Project])
+async def get_projects():
+    """Get all projects"""
+    projects = await db.projects.find({}, {"_id": 0}).to_list(1000)
+    return [deserialize_project(p) for p in projects]
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
+@api_router.post("/projects", response_model=Project)
+async def create_project(input: ProjectCreate):
+    """Create a new project"""
+    project = Project(
+        name=input.name,
+        description=input.description,
+        pages=[ReportPage(name="Page 1", layout="free")]
+    )
+    doc = project.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    await db.projects.insert_one(doc)
+    return project
+
+@api_router.get("/projects/{project_id}", response_model=Project)
+async def get_project(project_id: str):
+    """Get a specific project"""
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return deserialize_project(project)
+
+@api_router.put("/projects/{project_id}", response_model=Project)
+async def update_project(project_id: str, input: ProjectUpdate):
+    """Update a project"""
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
     
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
+    update_data = input.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     
-    return status_checks
+    await db.projects.update_one(
+        {"id": project_id},
+        {"$set": update_data}
+    )
+    
+    updated = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    return deserialize_project(updated)
+
+@api_router.delete("/projects/{project_id}")
+async def delete_project(project_id: str):
+    """Delete a project"""
+    result = await db.projects.delete_one({"id": project_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"message": "Project deleted"}
+
+# ============== PAGE ENDPOINTS ==============
+
+@api_router.post("/projects/{project_id}/pages", response_model=Project)
+async def add_page(project_id: str, input: PageCreate):
+    """Add a new page to a project"""
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    new_page = ReportPage(name=input.name, layout=input.layout)
+    
+    await db.projects.update_one(
+        {"id": project_id},
+        {
+            "$push": {"pages": new_page.model_dump()},
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+    
+    updated = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    return deserialize_project(updated)
+
+@api_router.put("/projects/{project_id}/pages/{page_id}", response_model=Project)
+async def update_page(project_id: str, page_id: str, input: PageUpdate):
+    """Update a specific page"""
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    pages = project.get('pages', [])
+    page_index = next((i for i, p in enumerate(pages) if p['id'] == page_id), None)
+    
+    if page_index is None:
+        raise HTTPException(status_code=404, detail="Page not found")
+    
+    update_data = input.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        pages[page_index][key] = value
+    
+    await db.projects.update_one(
+        {"id": project_id},
+        {
+            "$set": {
+                "pages": pages,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    updated = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    return deserialize_project(updated)
+
+@api_router.delete("/projects/{project_id}/pages/{page_id}", response_model=Project)
+async def delete_page(project_id: str, page_id: str):
+    """Delete a page from a project"""
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    pages = project.get('pages', [])
+    if len(pages) <= 1:
+        raise HTTPException(status_code=400, detail="Cannot delete the last page")
+    
+    pages = [p for p in pages if p['id'] != page_id]
+    
+    await db.projects.update_one(
+        {"id": project_id},
+        {
+            "$set": {
+                "pages": pages,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    updated = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    return deserialize_project(updated)
+
+# ============== EXPORT ENDPOINT ==============
+
+@api_router.get("/projects/{project_id}/export")
+async def export_project(project_id: str):
+    """Export project as JSON spec"""
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    export_data = {
+        "project_name": project['name'],
+        "description": project.get('description', ''),
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "pages": []
+    }
+    
+    for page in project.get('pages', []):
+        page_export = {
+            "page_name": page['name'],
+            "layout": page.get('layout', 'free'),
+            "components": [],
+            "annotations": []
+        }
+        
+        for comp in page.get('components', []):
+            page_export['components'].append({
+                "type": comp['type'],
+                "label": comp['label'],
+                "position": comp['position'],
+                "style": comp.get('style', {}),
+                "data": comp.get('data', {})
+            })
+        
+        for ann in page.get('annotations', []):
+            page_export['annotations'].append({
+                "text": ann['text'],
+                "position": ann['position'],
+                "color": ann.get('color', '#F59E0B')
+            })
+        
+        export_data['pages'].append(page_export)
+    
+    return export_data
+
+# ============== LAYOUT TEMPLATES ==============
+
+@api_router.get("/templates")
+async def get_templates():
+    """Get predefined layout templates"""
+    templates = [
+        {
+            "id": "executive",
+            "name": "Ejecutivo",
+            "description": "Dashboard de alto nivel con KPIs principales y gráficos resumidos",
+            "thumbnail": "executive",
+            "components": [
+                {"type": "kpi_card", "label": "KPI 1", "position": {"x": 20, "y": 20, "width": 200, "height": 100}},
+                {"type": "kpi_card", "label": "KPI 2", "position": {"x": 240, "y": 20, "width": 200, "height": 100}},
+                {"type": "kpi_card", "label": "KPI 3", "position": {"x": 460, "y": 20, "width": 200, "height": 100}},
+                {"type": "kpi_card", "label": "KPI 4", "position": {"x": 680, "y": 20, "width": 200, "height": 100}},
+                {"type": "bar_chart", "label": "Ventas por Región", "position": {"x": 20, "y": 140, "width": 420, "height": 280}},
+                {"type": "line_chart", "label": "Tendencia Mensual", "position": {"x": 460, "y": 140, "width": 420, "height": 280}},
+                {"type": "pie_chart", "label": "Distribución", "position": {"x": 20, "y": 440, "width": 280, "height": 220}},
+                {"type": "gauge", "label": "Meta Cumplida", "position": {"x": 320, "y": 440, "width": 280, "height": 220}},
+            ]
+        },
+        {
+            "id": "operational",
+            "name": "Operacional",
+            "description": "Vista detallada con tablas y filtros para análisis operativo",
+            "thumbnail": "operational",
+            "components": [
+                {"type": "slicer", "label": "Filtro Fecha", "position": {"x": 20, "y": 20, "width": 180, "height": 60}},
+                {"type": "slicer", "label": "Filtro Región", "position": {"x": 220, "y": 20, "width": 180, "height": 60}},
+                {"type": "slicer", "label": "Filtro Producto", "position": {"x": 420, "y": 20, "width": 180, "height": 60}},
+                {"type": "table", "label": "Detalle de Transacciones", "position": {"x": 20, "y": 100, "width": 580, "height": 300}},
+                {"type": "bar_chart", "label": "Top 10 Productos", "position": {"x": 620, "y": 100, "width": 260, "height": 300}},
+                {"type": "line_chart", "label": "Evolución Diaria", "position": {"x": 20, "y": 420, "width": 860, "height": 240}},
+            ]
+        },
+        {
+            "id": "detailed",
+            "name": "Detallado",
+            "description": "Análisis profundo con múltiples visualizaciones y matrices",
+            "thumbnail": "detailed",
+            "components": [
+                {"type": "kpi_card", "label": "Total", "position": {"x": 20, "y": 20, "width": 150, "height": 80}},
+                {"type": "kpi_card", "label": "Promedio", "position": {"x": 190, "y": 20, "width": 150, "height": 80}},
+                {"type": "kpi_card", "label": "Máximo", "position": {"x": 360, "y": 20, "width": 150, "height": 80}},
+                {"type": "matrix", "label": "Matriz de Análisis", "position": {"x": 20, "y": 120, "width": 490, "height": 280}},
+                {"type": "treemap", "label": "Distribución Jerárquica", "position": {"x": 530, "y": 20, "width": 350, "height": 200}},
+                {"type": "scatter", "label": "Correlación", "position": {"x": 530, "y": 240, "width": 350, "height": 160}},
+                {"type": "area_chart", "label": "Tendencia Acumulada", "position": {"x": 20, "y": 420, "width": 860, "height": 240}},
+            ]
+        },
+        {
+            "id": "analytical",
+            "name": "Analítico",
+            "description": "Dashboard para científicos de datos con gráficos avanzados",
+            "thumbnail": "analytical",
+            "components": [
+                {"type": "slicer", "label": "Período", "position": {"x": 20, "y": 20, "width": 200, "height": 50}},
+                {"type": "slicer", "label": "Segmento", "position": {"x": 240, "y": 20, "width": 200, "height": 50}},
+                {"type": "scatter", "label": "Análisis de Dispersión", "position": {"x": 20, "y": 90, "width": 420, "height": 280}},
+                {"type": "line_chart", "label": "Series Temporales", "position": {"x": 460, "y": 90, "width": 420, "height": 280}},
+                {"type": "bar_chart", "label": "Comparativa", "position": {"x": 20, "y": 390, "width": 280, "height": 270}},
+                {"type": "donut_chart", "label": "Composición", "position": {"x": 320, "y": 390, "width": 280, "height": 270}},
+                {"type": "gauge", "label": "Índice", "position": {"x": 620, "y": 390, "width": 260, "height": 270}},
+            ]
+        }
+    ]
+    return templates
 
 # Include the router in the main app
 app.include_router(api_router)
