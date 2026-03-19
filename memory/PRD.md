@@ -39,6 +39,8 @@ Professional web application for business users to design Power BI report backgr
 ✅ **Alineación de elementos** (6 direcciones: izq/centro/der/arriba/medio/abajo)
 ✅ **Edición de títulos prominente** en panel de propiedades
 ✅ **Botón eliminar** en toolbar + tecla Delete
+✅ **SOPORTE MÚLTIPLES PÁGINAS** - crear, eliminar, duplicar, renombrar páginas
+✅ **GUÍAS DE ALINEACIÓN INTELIGENTES** - líneas rojas que aparecen al arrastrar cerca de otros elementos
 
 ## P0 Features Remaining
 - None (MVP complete)
@@ -46,13 +48,11 @@ Professional web application for business users to design Power BI report backgr
 ## P1 Features (Backlog)
 - Header/Footer builder
 - Snap-to-grid functionality
-- Alignment guides between elements
 - Custom canvas size input
 - Image upload for zones
 
 ## P2 Features (Future)
 - State encoded in URL for sharing
-- Multiple pages support
 - Import JSON to restore design
 - Export to PowerPoint
 - Collaboration features
@@ -60,5 +60,4 @@ Professional web application for business users to design Power BI report backgr
 ## Next Tasks
 1. Add header/footer builder panel
 2. Implement snap-to-grid toggle
-3. Add alignment guides when dragging
-4. Translate remaining UI text to Spanish
+3. Translate remaining UI text to Spanish
