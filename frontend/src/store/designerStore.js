@@ -1,20 +1,22 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 
-// Zone types configuration
+// Zone types with visualization previews
 export const ZONE_TYPES = {
-  kpi_card: { label: 'KPI Card', icon: 'LayoutTemplate', defaultSize: { width: 200, height: 120 }, color: '#2563EB' },
-  bar_chart: { label: 'Bar Chart', icon: 'BarChart3', defaultSize: { width: 300, height: 200 }, color: '#2563EB' },
-  line_chart: { label: 'Line Chart', icon: 'LineChart', defaultSize: { width: 300, height: 200 }, color: '#10B981' },
-  pie_chart: { label: 'Pie Chart', icon: 'PieChart', defaultSize: { width: 200, height: 200 }, color: '#8B5CF6' },
-  donut_chart: { label: 'Donut Chart', icon: 'CircleDot', defaultSize: { width: 200, height: 200 }, color: '#EC4899' },
-  table: { label: 'Table', icon: 'Table', defaultSize: { width: 350, height: 250 }, color: '#6B7280' },
-  matrix: { label: 'Matrix', icon: 'Grid3X3', defaultSize: { width: 350, height: 250 }, color: '#4B5563' },
-  slicer: { label: 'Slicer', icon: 'Filter', defaultSize: { width: 180, height: 300 }, color: '#9CA3AF' },
-  map: { label: 'Map', icon: 'Map', defaultSize: { width: 300, height: 250 }, color: '#059669' },
-  text_box: { label: 'Text Box', icon: 'Type', defaultSize: { width: 200, height: 80 }, color: '#374151' },
-  image: { label: 'Image', icon: 'Image', defaultSize: { width: 200, height: 150 }, color: '#7C3AED' },
-  shape: { label: 'Shape', icon: 'Square', defaultSize: { width: 100, height: 100 }, color: '#F59E0B' },
+  card: { label: 'Recuadro Vacío', icon: 'Square', defaultSize: { width: 300, height: 200 }, visualization: 'none' },
+  bar_chart: { label: 'Gráfico de Barras', icon: 'BarChart3', defaultSize: { width: 350, height: 250 }, visualization: 'bar' },
+  line_chart: { label: 'Gráfico de Líneas', icon: 'LineChart', defaultSize: { width: 350, height: 250 }, visualization: 'line' },
+  area_chart: { label: 'Gráfico de Área', icon: 'AreaChart', defaultSize: { width: 350, height: 250 }, visualization: 'area' },
+  pie_chart: { label: 'Gráfico Circular', icon: 'PieChart', defaultSize: { width: 250, height: 250 }, visualization: 'pie' },
+  donut_chart: { label: 'Gráfico de Dona', icon: 'CircleDot', defaultSize: { width: 250, height: 250 }, visualization: 'donut' },
+  stacked_bar: { label: 'Barras Apiladas', icon: 'BarChart', defaultSize: { width: 350, height: 280 }, visualization: 'stacked_bar' },
+  horizontal_bar: { label: 'Barras Horizontales', icon: 'BarChartHorizontal', defaultSize: { width: 300, height: 280 }, visualization: 'horizontal_bar' },
+  kpi_card: { label: 'Tarjeta KPI', icon: 'Hash', defaultSize: { width: 200, height: 120 }, visualization: 'kpi' },
+  table: { label: 'Tabla', icon: 'Table', defaultSize: { width: 400, height: 280 }, visualization: 'table' },
+  filter_dropdown: { label: 'Filtro/Dropdown', icon: 'Filter', defaultSize: { width: 150, height: 50 }, visualization: 'filter' },
+  header: { label: 'Header/Título', icon: 'PanelTop', defaultSize: { width: 800, height: 50 }, visualization: 'header' },
+  nav_tabs: { label: 'Tabs de Navegación', icon: 'LayoutList', defaultSize: { width: 600, height: 40 }, visualization: 'tabs' },
+  text_box: { label: 'Texto', icon: 'Type', defaultSize: { width: 200, height: 40 }, visualization: 'text' },
 };
 
 // Canvas size presets
@@ -26,95 +28,119 @@ export const CANVAS_SIZES = [
 
 // Background presets
 export const BACKGROUND_PRESETS = [
-  { id: 'dark_navy', label: 'Dark Navy', type: 'solid', color: '#1a2744' },
-  { id: 'light_gray', label: 'Light Gray', type: 'solid', color: '#f3f4f6' },
-  { id: 'white_clean', label: 'White Clean', type: 'solid', color: '#ffffff' },
-  { id: 'dark_slate', label: 'Dark Slate', type: 'solid', color: '#1e293b' },
-  { id: 'gradient_blue', label: 'Blue Gradient', type: 'gradient', colors: ['#1e3a5f', '#0f172a'], direction: 'vertical' },
-  { id: 'gradient_purple', label: 'Purple Gradient', type: 'gradient', colors: ['#4c1d95', '#1e1b4b'], direction: 'diagonal' },
+  { id: 'light_gray', label: 'Gris Claro', type: 'solid', color: '#f0f0f0' },
+  { id: 'white', label: 'Blanco', type: 'solid', color: '#ffffff' },
+  { id: 'soft_gray', label: 'Gris Suave', type: 'solid', color: '#e8e8e8' },
+  { id: 'cream', label: 'Crema', type: 'solid', color: '#f5f5f0' },
+  { id: 'light_blue', label: 'Azul Claro', type: 'solid', color: '#f0f4f8' },
+  { id: 'dark_navy', label: 'Azul Oscuro', type: 'solid', color: '#1a2744' },
 ];
 
-// Color palette presets
-export const PALETTE_PRESETS = [
-  { id: 'corporate', label: 'Corporate', colors: ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'] },
-  { id: 'accessible', label: 'Accessible', colors: ['#0077B6', '#00B4D8', '#90BE6D', '#F9C74F', '#F8961E', '#F94144'] },
-  { id: 'pastel', label: 'Pastel', colors: ['#A8DADC', '#F1FAEE', '#E63946', '#457B9D', '#1D3557', '#FFB4A2'] },
-  { id: 'dark', label: 'Dark Mode', colors: ['#60A5FA', '#34D399', '#FBBF24', '#F87171', '#A78BFA', '#F472B6'] },
-  { id: 'monochrome', label: 'Monochrome Blue', colors: ['#1e3a5f', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#dbeafe'] },
+// Card color presets
+export const CARD_COLOR_PRESETS = [
+  { id: 'white', label: 'Blanco', color: '#ffffff' },
+  { id: 'light_gray', label: 'Gris Claro', color: '#f8f9fa' },
+  { id: 'navy', label: 'Azul Marino', color: '#1a365d' },
+  { id: 'blue', label: 'Azul', color: '#2563eb' },
+  { id: 'teal', label: 'Verde Azulado', color: '#0d9488' },
+  { id: 'orange', label: 'Naranja', color: '#ea580c' },
 ];
 
-// Layout templates
+// Chart color palettes
+export const CHART_PALETTES = {
+  default: ['#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899'],
+  elea: ['#003366', '#0066cc', '#00a1e4', '#f7941d', '#808080', '#333333'],
+  corporate: ['#1a365d', '#2563eb', '#0d9488', '#f59e0b', '#dc2626', '#7c3aed'],
+  pastel: ['#93c5fd', '#fcd34d', '#86efac', '#fca5a5', '#c4b5fd', '#f9a8d4'],
+};
+
+// Layout templates with visualizations
 export const LAYOUT_TEMPLATES = [
   {
-    id: 'executive',
-    name: 'Executive Summary',
-    description: '4 KPI cards + 1 chart + 1 table',
+    id: 'elea_seleccion',
+    name: 'Elea Selección',
+    description: 'Layout similar al mockup de referencia con gráficos',
     zones: [
-      { type: 'kpi_card', label: 'KPI 1', x: 40, y: 40, width: 220, height: 100 },
-      { type: 'kpi_card', label: 'KPI 2', x: 280, y: 40, width: 220, height: 100 },
-      { type: 'kpi_card', label: 'KPI 3', x: 520, y: 40, width: 220, height: 100 },
-      { type: 'kpi_card', label: 'KPI 4', x: 760, y: 40, width: 220, height: 100 },
-      { type: 'bar_chart', label: 'Main Chart', x: 40, y: 160, width: 580, height: 280 },
-      { type: 'table', label: 'Data Table', x: 640, y: 160, width: 340, height: 280 },
+      { type: 'header', label: 'Elea Selección', x: 0, y: 0, width: 1280, height: 55, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: false, borderWidth: 0 }, visualConfig: { title: 'Elea', subtitle: 'Selección', logoColor: '#003366' } },
+      { type: 'nav_tabs', label: 'KPIs Búsquedas Cerradas', x: 0, y: 55, width: 560, height: 35, style: { fillColor: '#003366', fillOpacity: 1, shadowEnabled: false, borderWidth: 0 }, visualConfig: { active: true } },
+      { type: 'nav_tabs', label: 'Detalle Búsquedas', x: 560, y: 55, width: 720, height: 35, style: { fillColor: '#e0e0e0', fillOpacity: 1, shadowEnabled: false, borderWidth: 0 }, visualConfig: { active: false } },
+      { type: 'filter_dropdown', label: 'Dirección', x: 40, y: 105, width: 130, height: 45, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'filter_dropdown', label: 'Gerencia', x: 180, y: 105, width: 130, height: 45, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'filter_dropdown', label: 'Área', x: 320, y: 105, width: 130, height: 45, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'stacked_bar', label: 'Estado de Búsquedas', x: 25, y: 165, width: 295, height: 290, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'stacked_bar', label: 'Tiempo Promedio de Cierre', x: 330, y: 165, width: 240, height: 290, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'horizontal_bar', label: 'Ranking Tiempo Promedio', x: 580, y: 165, width: 250, height: 290, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'horizontal_bar', label: 'Ranking Cantidad', x: 840, y: 165, width: 250, height: 290, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'bar_chart', label: 'Tiempo Promedio por Etapa', x: 25, y: 470, width: 295, height: 220, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'stacked_bar', label: 'Fuente de Búsquedas Cerradas', x: 330, y: 470, width: 240, height: 220, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'stacked_bar', label: 'Motivo de Búsquedas', x: 580, y: 470, width: 250, height: 220, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'horizontal_bar', label: 'Motivo de Reemplazo', x: 840, y: 470, width: 250, height: 220, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+    ]
+  },
+  {
+    id: 'executive',
+    name: 'Dashboard Ejecutivo',
+    description: '4 KPIs + gráficos principales',
+    zones: [
+      { type: 'header', label: 'Dashboard Ejecutivo', x: 0, y: 0, width: 1280, height: 50, style: { fillColor: '#1a365d', fillOpacity: 1, shadowEnabled: false, borderWidth: 0 } },
+      { type: 'kpi_card', label: 'Ventas Totales', x: 40, y: 70, width: 200, height: 100, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true }, visualConfig: { value: '$1.2M', trend: '+12%', trendUp: true } },
+      { type: 'kpi_card', label: 'Órdenes', x: 260, y: 70, width: 200, height: 100, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true }, visualConfig: { value: '3,456', trend: '+8%', trendUp: true } },
+      { type: 'kpi_card', label: 'Clientes', x: 480, y: 70, width: 200, height: 100, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true }, visualConfig: { value: '892', trend: '+15%', trendUp: true } },
+      { type: 'kpi_card', label: 'Ticket Promedio', x: 700, y: 70, width: 200, height: 100, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true }, visualConfig: { value: '$347', trend: '-2%', trendUp: false } },
+      { type: 'bar_chart', label: 'Ventas por Región', x: 40, y: 190, width: 420, height: 280, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'line_chart', label: 'Tendencia Mensual', x: 480, y: 190, width: 420, height: 280, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'donut_chart', label: 'Por Categoría', x: 920, y: 190, width: 320, height: 280, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'table', label: 'Top Productos', x: 40, y: 490, width: 600, height: 200, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'horizontal_bar', label: 'Por Vendedor', x: 660, y: 490, width: 580, height: 200, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
     ]
   },
   {
     id: 'sales',
-    name: 'Sales Dashboard',
-    description: '3 KPIs + 2 charts + slicer panel',
+    name: 'Dashboard de Ventas',
+    description: 'Panel de filtros lateral + métricas',
     zones: [
-      { type: 'slicer', label: 'Filters', x: 40, y: 40, width: 160, height: 400 },
-      { type: 'kpi_card', label: 'Revenue', x: 220, y: 40, width: 200, height: 100 },
-      { type: 'kpi_card', label: 'Orders', x: 440, y: 40, width: 200, height: 100 },
-      { type: 'kpi_card', label: 'Avg Ticket', x: 660, y: 40, width: 200, height: 100 },
-      { type: 'bar_chart', label: 'Sales by Region', x: 220, y: 160, width: 320, height: 280 },
-      { type: 'line_chart', label: 'Trend', x: 560, y: 160, width: 320, height: 280 },
+      { type: 'header', label: 'Análisis de Ventas', x: 0, y: 0, width: 1280, height: 55, style: { fillColor: '#1a365d', fillOpacity: 1, shadowEnabled: false, borderWidth: 0 } },
+      { type: 'card', label: 'Filtros', x: 25, y: 75, width: 180, height: 400, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'kpi_card', label: 'Revenue', x: 225, y: 75, width: 200, height: 95, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true }, visualConfig: { value: '$2.4M', trend: '+18%', trendUp: true } },
+      { type: 'kpi_card', label: 'Orders', x: 445, y: 75, width: 200, height: 95, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true }, visualConfig: { value: '5,672', trend: '+12%', trendUp: true } },
+      { type: 'kpi_card', label: 'Customers', x: 665, y: 75, width: 200, height: 95, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true }, visualConfig: { value: '1,234', trend: '+25%', trendUp: true } },
+      { type: 'line_chart', label: 'Sales Trend', x: 225, y: 190, width: 520, height: 285, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'pie_chart', label: 'By Region', x: 765, y: 190, width: 250, height: 285, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'table', label: 'Sales Details', x: 225, y: 495, width: 790, height: 195, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
     ]
   },
   {
     id: 'operational',
-    name: 'Operational',
-    description: 'Header + 6 KPIs + 2 charts',
+    name: 'Dashboard Operacional',
+    description: '6 KPIs + gráficos de seguimiento',
     zones: [
-      { type: 'text_box', label: 'Report Title', x: 40, y: 20, width: 400, height: 50 },
-      { type: 'kpi_card', label: 'Metric 1', x: 40, y: 90, width: 180, height: 90 },
-      { type: 'kpi_card', label: 'Metric 2', x: 240, y: 90, width: 180, height: 90 },
-      { type: 'kpi_card', label: 'Metric 3', x: 440, y: 90, width: 180, height: 90 },
-      { type: 'kpi_card', label: 'Metric 4', x: 640, y: 90, width: 180, height: 90 },
-      { type: 'kpi_card', label: 'Metric 5', x: 840, y: 90, width: 180, height: 90 },
-      { type: 'bar_chart', label: 'Chart 1', x: 40, y: 200, width: 480, height: 240 },
-      { type: 'line_chart', label: 'Chart 2', x: 540, y: 200, width: 480, height: 240 },
+      { type: 'text_box', label: 'Dashboard Operacional', x: 30, y: 15, width: 350, height: 35, style: { fillColor: '#1a365d', fillOpacity: 1, shadowEnabled: false, borderWidth: 0 } },
+      { type: 'kpi_card', label: 'Producción', x: 30, y: 65, width: 195, height: 90, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true }, visualConfig: { value: '12,450', trend: '+5%', trendUp: true } },
+      { type: 'kpi_card', label: 'Eficiencia', x: 240, y: 65, width: 195, height: 90, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true }, visualConfig: { value: '94.2%', trend: '+2%', trendUp: true } },
+      { type: 'kpi_card', label: 'Defectos', x: 450, y: 65, width: 195, height: 90, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true }, visualConfig: { value: '23', trend: '-15%', trendUp: true } },
+      { type: 'kpi_card', label: 'Tiempo Ciclo', x: 660, y: 65, width: 195, height: 90, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true }, visualConfig: { value: '4.2h', trend: '-8%', trendUp: true } },
+      { type: 'kpi_card', label: 'OEE', x: 870, y: 65, width: 195, height: 90, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true }, visualConfig: { value: '87%', trend: '+3%', trendUp: true } },
+      { type: 'kpi_card', label: 'Uptime', x: 1080, y: 65, width: 170, height: 90, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true }, visualConfig: { value: '99.1%', trend: '+0.5%', trendUp: true } },
+      { type: 'area_chart', label: 'Producción Diaria', x: 30, y: 175, width: 610, height: 250, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'bar_chart', label: 'Por Línea', x: 660, y: 175, width: 590, height: 250, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'table', label: 'Detalle de Órdenes', x: 30, y: 445, width: 1220, height: 245, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
     ]
   },
   {
-    id: 'clinical',
-    name: 'Clinical Tracking',
-    description: 'Filter panel + 3 charts + table',
+    id: 'simple',
+    name: 'Layout Simple',
+    description: '4 áreas grandes para personalizar',
     zones: [
-      { type: 'slicer', label: 'Date Range', x: 40, y: 40, width: 180, height: 180 },
-      { type: 'slicer', label: 'Department', x: 40, y: 240, width: 180, height: 180 },
-      { type: 'pie_chart', label: 'Distribution', x: 240, y: 40, width: 260, height: 200 },
-      { type: 'line_chart', label: 'Trends', x: 520, y: 40, width: 460, height: 200 },
-      { type: 'table', label: 'Patient Data', x: 240, y: 260, width: 740, height: 180 },
-    ]
-  },
-  {
-    id: 'hr',
-    name: 'HR / Recruitment',
-    description: 'Timeline + funnels + KPIs',
-    zones: [
-      { type: 'line_chart', label: 'Hiring Timeline', x: 40, y: 40, width: 700, height: 180 },
-      { type: 'kpi_card', label: 'Open Positions', x: 760, y: 40, width: 200, height: 80 },
-      { type: 'kpi_card', label: 'Hires MTD', x: 760, y: 140, width: 200, height: 80 },
-      { type: 'bar_chart', label: 'By Department', x: 40, y: 240, width: 300, height: 200 },
-      { type: 'donut_chart', label: 'Sources', x: 360, y: 240, width: 200, height: 200 },
-      { type: 'table', label: 'Recent Hires', x: 580, y: 240, width: 380, height: 200 },
+      { type: 'card', label: 'Área 1', x: 40, y: 40, width: 590, height: 310, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'card', label: 'Área 2', x: 650, y: 40, width: 590, height: 310, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'card', label: 'Área 3', x: 40, y: 370, width: 590, height: 310, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
+      { type: 'card', label: 'Área 4', x: 650, y: 370, width: 590, height: 310, style: { fillColor: '#ffffff', fillOpacity: 1, shadowEnabled: true } },
     ]
   },
   {
     id: 'blank',
-    name: 'Blank Canvas',
-    description: 'Start from scratch',
+    name: 'Canvas en Blanco',
+    description: 'Comenzar desde cero',
     zones: []
   }
 ];
@@ -126,59 +152,49 @@ const generateId = () => `zone_${uuidv4().slice(0, 8)}`;
 const useDesignerStore = create((set, get) => ({
   // Canvas settings
   canvasSize: { width: 1280, height: 720 },
-  background: { type: 'solid', color: '#ffffff' },
+  background: { type: 'solid', color: '#f0f0f0' },
   showGrid: true,
   zoom: 1,
+  chartPalette: 'default',
   
   // Elements
   zones: [],
   selectedZoneId: null,
   
-  // Header/Footer
-  header: null,
-  footer: null,
-  
   // Theme settings
-  palette: PALETTE_PRESETS[0].colors,
-  typography: {
-    fontFamily: 'Segoe UI',
-    titleSize: 18,
-    bodySize: 12,
-    fontColor: '#111827'
-  },
   defaultZoneStyle: {
-    borderColor: '#e5e7eb',
-    borderWidth: 2,
-    borderStyle: 'dashed',
     fillColor: '#ffffff',
-    fillOpacity: 0.1,
-    cornerRadius: 8
+    fillOpacity: 1,
+    borderColor: '#e5e7eb',
+    borderWidth: 0,
+    cornerRadius: 8,
+    shadowEnabled: true,
+    shadowColor: 'rgba(0,0,0,0.1)',
+    shadowBlur: 10,
+    shadowOffsetX: 0,
+    shadowOffsetY: 4
   },
   
   // History for undo/redo
   history: [],
   historyIndex: -1,
   
-  // Preview mode
+  // Clipboard for copy/paste
+  clipboard: null,
+  
+  // Preview/Export mode - hides labels and visualization previews
   previewMode: false,
+  // Show visualizations toggle
+  showVisualizations: true,
   
   // Actions
   setCanvasSize: (size) => set({ canvasSize: size }),
-  
   setBackground: (bg) => set({ background: bg }),
-  
   setShowGrid: (show) => set({ showGrid: show }),
-  
   setZoom: (zoom) => set({ zoom: Math.max(0.25, Math.min(2, zoom)) }),
-  
   setPreviewMode: (mode) => set({ previewMode: mode }),
-  
-  setPalette: (palette) => set({ palette }),
-  
-  setTypography: (typography) => set((state) => ({ 
-    typography: { ...state.typography, ...typography } 
-  })),
-  
+  setShowVisualizations: (show) => set({ showVisualizations: show }),
+  setChartPalette: (palette) => set({ chartPalette: palette }),
   setDefaultZoneStyle: (style) => set((state) => ({
     defaultZoneStyle: { ...state.defaultZoneStyle, ...style }
   })),
@@ -198,6 +214,7 @@ const useDesignerStore = create((set, get) => ({
       width: typeConfig.defaultSize.width,
       height: typeConfig.defaultSize.height,
       style: { ...state.defaultZoneStyle },
+      visualConfig: {},
       zIndex: state.zones.length
     };
     
@@ -256,8 +273,40 @@ const useDesignerStore = create((set, get) => ({
     });
   },
   
-  selectZone: (id) => set({ selectedZoneId: id }),
+  // Copy zone to clipboard
+  copyZone: (id) => {
+    const state = get();
+    const zone = state.zones.find(z => z.id === id);
+    if (!zone) return;
+    set({ clipboard: { ...zone } });
+  },
   
+  // Paste zone from clipboard
+  pasteZone: () => {
+    const state = get();
+    if (!state.clipboard) return;
+    
+    const newZone = {
+      ...state.clipboard,
+      id: generateId(),
+      label: `${state.clipboard.label} (copia)`,
+      x: state.clipboard.x + 30,
+      y: state.clipboard.y + 30,
+      zIndex: state.zones.length
+    };
+    
+    set((state) => {
+      const newZones = [...state.zones, newZone];
+      return {
+        zones: newZones,
+        selectedZoneId: newZone.id,
+        clipboard: { ...newZone, x: newZone.x, y: newZone.y },
+        ...get().saveHistory(newZones)
+      };
+    });
+  },
+  
+  selectZone: (id) => set({ selectedZoneId: id }),
   clearSelection: () => set({ selectedZoneId: null }),
   
   // Z-order
@@ -315,7 +364,8 @@ const useDesignerStore = create((set, get) => ({
     const newZones = template.zones.map((z, i) => ({
       id: generateId(),
       ...z,
-      style: { ...get().defaultZoneStyle },
+      style: z.style || { ...get().defaultZoneStyle },
+      visualConfig: z.visualConfig || {},
       zIndex: i
     }));
     
@@ -326,25 +376,13 @@ const useDesignerStore = create((set, get) => ({
     }));
   },
   
-  // Header/Footer
-  setHeader: (header) => set({ header }),
-  setFooter: (footer) => set({ footer }),
-  
-  // History management
+  // History
   saveHistory: (zones) => {
     const state = get();
     const newHistory = state.history.slice(0, state.historyIndex + 1);
     newHistory.push(JSON.stringify(zones));
-    
-    // Keep only last 10 states
-    if (newHistory.length > 10) {
-      newHistory.shift();
-    }
-    
-    return {
-      history: newHistory,
-      historyIndex: newHistory.length - 1
-    };
+    if (newHistory.length > 10) newHistory.shift();
+    return { history: newHistory, historyIndex: newHistory.length - 1 };
   },
   
   undo: () => {
@@ -373,11 +411,7 @@ const useDesignerStore = create((set, get) => ({
     const state = get();
     return {
       canvasSize: state.canvasSize,
-      theme: {
-        background: state.background,
-        palette: state.palette
-      },
-      fonts: state.typography,
+      theme: { background: state.background },
       zones: state.zones.map(z => ({
         id: z.id,
         type: z.type,
@@ -388,19 +422,14 @@ const useDesignerStore = create((set, get) => ({
         height: Math.round(z.height),
         style: z.style
       })),
-      header: state.header,
-      footer: state.footer,
       generatedAt: new Date().toISOString()
     };
   },
   
-  // Clear all
   clearCanvas: () => {
     set({
       zones: [],
       selectedZoneId: null,
-      header: null,
-      footer: null,
       history: [],
       historyIndex: -1
     });

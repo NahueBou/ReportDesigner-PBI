@@ -7,7 +7,7 @@ from datetime import datetime
 
 class PowerBIBackendTester:
     def __init__(self):
-        self.base_url = "https://report-builder-114.preview.emergentagent.com/api"
+        self.base_url = "https://design-export-2.preview.emergentagent.com/api"
         self.tests_run = 0
         self.tests_passed = 0
         self.test_project_id = None

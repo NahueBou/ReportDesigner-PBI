@@ -4,7 +4,7 @@ import {
   TrendingUp,
   Settings,
   Activity,
-  Users,
+  Grid3X3,
   FileStack
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,18 +20,22 @@ import useDesignerStore, { LAYOUT_TEMPLATES } from "@/store/designerStore";
 
 const templateIcons = {
   executive: LayoutDashboard,
+  elea_seleccion: Activity,
   sales: TrendingUp,
   operational: Settings,
-  clinical: Activity,
-  hr: Users,
+  simple: Grid3X3,
   blank: FileStack
 };
 
 const TemplateModal = ({ open, onOpenChange }) => {
-  const { loadTemplate } = useDesignerStore();
+  const { loadTemplate, setBackground } = useDesignerStore();
 
   const handleSelectTemplate = (templateId) => {
     loadTemplate(templateId);
+    // Set default gray background for templates
+    if (templateId !== 'blank') {
+      setBackground({ type: 'solid', color: '#f0f0f0' });
+    }
     onOpenChange(false);
     if (templateId !== 'blank') {
       toast.success(`Template "${LAYOUT_TEMPLATES.find(t => t.id === templateId)?.name}" cargado`);
@@ -44,9 +48,9 @@ const TemplateModal = ({ open, onOpenChange }) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[85vh]">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Bienvenido al Report Designer</DialogTitle>
+          <DialogTitle className="text-2xl">Power BI Report Designer</DialogTitle>
           <DialogDescription className="text-base">
-            Elige un template prediseñado para comenzar rápidamente, o inicia con un canvas en blanco.
+            Diseña el fondo de tu reporte. Los recuadros blancos serán las áreas donde colocarás los visuales en Power BI Desktop.
           </DialogDescription>
         </DialogHeader>
 
@@ -62,25 +66,27 @@ const TemplateModal = ({ open, onOpenChange }) => {
                   onClick={() => handleSelectTemplate(template.id)}
                   className="template-card group p-4 rounded-xl border-2 border-transparent hover:border-primary/50 bg-gray-50 hover:bg-white text-left transition-all"
                 >
-                  {/* Preview */}
-                  <div className="aspect-video bg-white rounded-lg border mb-3 p-2 relative overflow-hidden">
+                  {/* Preview - shows actual card layout */}
+                  <div className="aspect-video bg-[#f0f0f0] rounded-lg border mb-3 p-1.5 relative overflow-hidden">
                     {template.zones.length > 0 ? (
-                      template.zones.slice(0, 8).map((zone, idx) => (
+                      template.zones.slice(0, 14).map((zone, idx) => (
                         <div
                           key={idx}
-                          className="absolute bg-primary/20 border border-primary/30 rounded-sm transition-colors group-hover:bg-primary/30"
+                          className="absolute rounded-sm transition-colors"
                           style={{
                             left: `${(zone.x / 1280) * 100}%`,
                             top: `${(zone.y / 720) * 100}%`,
                             width: `${(zone.width / 1280) * 100}%`,
                             height: `${(zone.height / 720) * 100}%`,
+                            backgroundColor: zone.style?.fillColor || '#ffffff',
+                            boxShadow: zone.style?.shadowEnabled !== false ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                           }}
                         />
                       ))
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-                          <FileStack className="w-8 h-8 text-gray-300" />
+                        <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                          <FileStack className="w-6 h-6 text-gray-400" />
                         </div>
                       </div>
                     )}
@@ -100,7 +106,7 @@ const TemplateModal = ({ open, onOpenChange }) => {
                       </p>
                       {template.zones.length > 0 && (
                         <span className="text-xs text-primary font-medium mt-1 inline-block">
-                          {template.zones.length} elementos
+                          {template.zones.length} recuadros
                         </span>
                       )}
                     </div>
@@ -113,7 +119,7 @@ const TemplateModal = ({ open, onOpenChange }) => {
 
         <div className="flex justify-between items-center pt-4 border-t">
           <p className="text-sm text-muted-foreground">
-            Puedes cambiar de template en cualquier momento
+            Puedes modificar cualquier template después de cargarlo
           </p>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cerrar

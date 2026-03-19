@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   Download,
@@ -7,7 +7,8 @@ import {
   FileCode,
   Copy,
   Check,
-  Loader2
+  Loader2,
+  Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,14 +18,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import useDesignerStore from "@/store/designerStore";
 
 const ExportDialog = ({ open, onOpenChange }) => {
   const [exporting, setExporting] = useState(false);
   const [copied, setCopied] = useState(false);
-  const { canvasSize, getExportJSON, zones, background, previewMode, setPreviewMode } = useDesignerStore();
+  const { canvasSize, getExportJSON, zones, setPreviewMode, previewMode } = useDesignerStore();
 
   const exportAsPNG = async () => {
     setExporting(true);
@@ -34,17 +35,17 @@ const ExportDialog = ({ open, onOpenChange }) => {
       setPreviewMode(true);
       
       // Wait for re-render
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       // Get the Konva stage
-      const stage = document.querySelector('.konvajs-content canvas');
+      const stage = window.konvaStage;
       if (!stage) {
         throw new Error('Canvas not found');
       }
       
-      // Create download link
+      // Export with high quality
       const dataURL = stage.toDataURL({
-        pixelRatio: 2,
+        pixelRatio: 2, // 2x resolution for high quality
         mimeType: 'image/png'
       });
       
@@ -53,7 +54,7 @@ const ExportDialog = ({ open, onOpenChange }) => {
       link.href = dataURL;
       link.click();
       
-      toast.success("PNG exportado exitosamente");
+      toast.success("Imagen PNG exportada - lista para usar en Power BI");
     } catch (error) {
       console.error('Export error:', error);
       toast.error("Error al exportar PNG");
@@ -67,7 +68,11 @@ const ExportDialog = ({ open, onOpenChange }) => {
     setExporting(true);
     
     try {
-      // Create SVG content
+      // Set preview mode
+      setPreviewMode(true);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Generate SVG content
       const svgContent = generateSVG();
       
       const blob = new Blob([svgContent], { type: 'image/svg+xml' });
@@ -84,66 +89,74 @@ const ExportDialog = ({ open, onOpenChange }) => {
       console.error('Export error:', error);
       toast.error("Error al exportar SVG");
     } finally {
+      setPreviewMode(false);
       setExporting(false);
     }
   };
 
   const generateSVG = () => {
-    let bgFill = '#ffffff';
-    let bgGradient = '';
+    const state = useDesignerStore.getState();
+    const { background, zones, canvasSize } = state;
     
-    if (background.type === 'solid') {
-      bgFill = background.color;
-    } else if (background.type === 'gradient') {
-      const gradientId = 'bg-gradient';
-      const direction = background.direction || 'vertical';
-      
-      if (direction === 'vertical') {
-        bgGradient = `<defs><linearGradient id="${gradientId}" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style="stop-color:${background.colors[0]}"/>
-          <stop offset="100%" style="stop-color:${background.colors[1]}"/>
-        </linearGradient></defs>`;
-      } else if (direction === 'horizontal') {
-        bgGradient = `<defs><linearGradient id="${gradientId}" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" style="stop-color:${background.colors[0]}"/>
-          <stop offset="100%" style="stop-color:${background.colors[1]}"/>
-        </linearGradient></defs>`;
-      } else {
-        bgGradient = `<defs><linearGradient id="${gradientId}" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:${background.colors[0]}"/>
-          <stop offset="100%" style="stop-color:${background.colors[1]}"/>
-        </linearGradient></defs>`;
-      }
-      bgFill = `url(#bg-gradient)`;
-    }
+    const bgColor = background.color || '#f0f0f0';
 
+    // Generate zones SVG - clean cards without labels
     const zonesSVG = zones.map(zone => {
       const fillColor = zone.style?.fillColor || '#ffffff';
-      const fillOpacity = zone.style?.fillOpacity ?? 0.1;
-      const borderColor = zone.style?.borderColor || '#e5e7eb';
-      const borderWidth = zone.style?.borderWidth || 2;
+      const fillOpacity = zone.style?.fillOpacity ?? 1;
       const cornerRadius = zone.style?.cornerRadius || 8;
-      const borderStyle = zone.style?.borderStyle || 'dashed';
+      const shadowEnabled = zone.style?.shadowEnabled ?? true;
+      const borderWidth = zone.style?.borderWidth || 0;
+      const borderColor = zone.style?.borderColor || '#e5e7eb';
       
-      return `<rect 
+      // Shadow filter if enabled
+      const filterId = shadowEnabled ? `shadow-${zone.id}` : '';
+      
+      return `${shadowEnabled ? `<filter id="${filterId}" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="rgba(0,0,0,0.1)"/>
+      </filter>` : ''}
+      <rect 
         x="${zone.x}" 
         y="${zone.y}" 
         width="${zone.width}" 
         height="${zone.height}" 
         fill="${fillColor}" 
         fill-opacity="${fillOpacity}"
-        stroke="${borderColor}" 
-        stroke-width="${borderWidth}"
         rx="${cornerRadius}"
-        ${borderStyle === 'dashed' ? 'stroke-dasharray="8,4"' : ''}
+        ${shadowEnabled ? `filter="url(#${filterId})"` : ''}
+        ${borderWidth > 0 ? `stroke="${borderColor}" stroke-width="${borderWidth}"` : ''}
       />`;
     }).join('\n    ');
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${canvasSize.width}" height="${canvasSize.height}" viewBox="0 0 ${canvasSize.width} ${canvasSize.height}">
-  ${bgGradient}
-  <rect width="${canvasSize.width}" height="${canvasSize.height}" fill="${bgFill}"/>
-  ${zonesSVG}
+  <defs>
+    ${zones.filter(z => z.style?.shadowEnabled !== false).map(zone => `
+    <filter id="shadow-${zone.id}" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="rgba(0,0,0,0.1)"/>
+    </filter>`).join('')}
+  </defs>
+  <rect width="${canvasSize.width}" height="${canvasSize.height}" fill="${bgColor}"/>
+  ${zones.map(zone => {
+    const fillColor = zone.style?.fillColor || '#ffffff';
+    const fillOpacity = zone.style?.fillOpacity ?? 1;
+    const cornerRadius = zone.style?.cornerRadius || 8;
+    const shadowEnabled = zone.style?.shadowEnabled !== false;
+    const borderWidth = zone.style?.borderWidth || 0;
+    const borderColor = zone.style?.borderColor || '#e5e7eb';
+    
+    return `<rect 
+      x="${zone.x}" 
+      y="${zone.y}" 
+      width="${zone.width}" 
+      height="${zone.height}" 
+      fill="${fillColor}" 
+      fill-opacity="${fillOpacity}"
+      rx="${cornerRadius}"
+      ${shadowEnabled ? `filter="url(#shadow-${zone.id})"` : ''}
+      ${borderWidth > 0 ? `stroke="${borderColor}" stroke-width="${borderWidth}"` : ''}
+    />`;
+  }).join('\n  ')}
 </svg>`;
   };
 
@@ -161,7 +174,7 @@ const ExportDialog = ({ open, onOpenChange }) => {
       link.click();
       
       URL.revokeObjectURL(url);
-      toast.success("JSON exportado exitosamente");
+      toast.success("Especificación JSON exportada");
     } catch (error) {
       console.error('Export error:', error);
       toast.error("Error al exportar JSON");
@@ -187,7 +200,7 @@ const ExportDialog = ({ open, onOpenChange }) => {
       id: 'png',
       icon: Image,
       title: 'Imagen PNG',
-      description: 'Alta resolución (2x), ideal para usar como fondo en Power BI',
+      description: 'Fondo limpio de alta resolución (2x) para usar directamente en Power BI Desktop',
       action: exportAsPNG,
       badge: 'Recomendado'
     },
@@ -202,7 +215,7 @@ const ExportDialog = ({ open, onOpenChange }) => {
       id: 'json',
       icon: FileJson,
       title: 'Especificación JSON',
-      description: 'Archivo técnico para el equipo de desarrollo',
+      description: 'Posiciones y dimensiones de cada área para el equipo de desarrollo',
       action: exportAsJSON,
     }
   ];
@@ -213,18 +226,26 @@ const ExportDialog = ({ open, onOpenChange }) => {
         <DialogHeader>
           <DialogTitle className="text-xl">Exportar Diseño</DialogTitle>
           <DialogDescription>
-            Descarga tu diseño como imagen de fondo o especificación técnica
+            La imagen exportada contendrá solo el fondo y los recuadros (sin etiquetas), lista para usar en Power BI
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4 space-y-4">
+          {/* Info Alert */}
+          <Alert className="bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800 text-sm">
+              La imagen PNG exportada será el fondo limpio. En Power BI Desktop, agrégala como imagen de fondo del reporte y luego coloca los visuales encima siguiendo las posiciones definidas.
+            </AlertDescription>
+          </Alert>
+
           {/* Canvas Info */}
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">Canvas: {canvasSize.width} × {canvasSize.height} px</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {zones.length} zona{zones.length !== 1 ? 's' : ''} definida{zones.length !== 1 ? 's' : ''}
+                  {zones.length} recuadro{zones.length !== 1 ? 's' : ''} definido{zones.length !== 1 ? 's' : ''}
                 </p>
               </div>
               <Button 

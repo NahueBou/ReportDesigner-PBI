@@ -12,23 +12,18 @@ import {
   AlignStartVertical,
   AlignCenterVertical,
   AlignEndVertical,
-  Palette,
-  Type
+  Type,
+  Sun,
+  Moon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Popover,
   PopoverContent,
@@ -43,7 +38,7 @@ import {
 import useDesignerStore, { 
   ZONE_TYPES, 
   BACKGROUND_PRESETS, 
-  PALETTE_PRESETS 
+  CARD_COLOR_PRESETS
 } from "@/store/designerStore";
 
 const PropertiesPanel = () => {
@@ -58,10 +53,6 @@ const PropertiesPanel = () => {
     alignZones,
     background,
     setBackground,
-    palette,
-    setPalette,
-    typography,
-    setTypography,
     defaultZoneStyle,
     setDefaultZoneStyle
   } = useDesignerStore();
@@ -89,11 +80,11 @@ const PropertiesPanel = () => {
                 onUpdate={(updates) => updateZone(selectedZoneId, updates)}
                 onDelete={() => {
                   deleteZone(selectedZoneId);
-                  toast.success("Zona eliminada");
+                  toast.success("Elemento eliminado");
                 }}
                 onDuplicate={() => {
                   duplicateZone(selectedZoneId);
-                  toast.success("Zona duplicada");
+                  toast.success("Elemento duplicado");
                 }}
                 onBringForward={() => bringForward(selectedZoneId)}
                 onSendBackward={() => sendBackward(selectedZoneId)}
@@ -125,23 +116,7 @@ const PropertiesPanel = () => {
 
                 <Separator />
 
-                {/* Color Palette Section */}
-                <PaletteSection
-                  palette={palette}
-                  onUpdate={setPalette}
-                />
-
-                <Separator />
-
-                {/* Typography Section */}
-                <TypographySection
-                  typography={typography}
-                  onUpdate={setTypography}
-                />
-
-                <Separator />
-
-                {/* Default Zone Style */}
+                {/* Default Card Style */}
                 <DefaultStyleSection
                   style={defaultZoneStyle}
                   onUpdate={setDefaultZoneStyle}
@@ -158,29 +133,37 @@ const PropertiesPanel = () => {
 // Zone Properties Component
 const ZoneProperties = ({ zone, onUpdate, onDelete, onDuplicate, onBringForward, onSendBackward, onAlign }) => {
   const typeConfig = ZONE_TYPES[zone.type];
+  const { copyZone } = useDesignerStore();
 
   return (
     <ScrollArea className="flex-1">
       <div className="p-4 space-y-6">
-        {/* Zone Info */}
-        <div className="property-group">
-          <div className="flex items-center justify-between mb-3">
-            <span className="property-label">Tipo</span>
-            <span 
-              className="text-xs font-medium px-2 py-0.5 rounded"
-              style={{ backgroundColor: `${typeConfig?.color}20`, color: typeConfig?.color }}
-            >
-              {typeConfig?.label}
-            </span>
-          </div>
-          
-          <Label className="property-label">Etiqueta</Label>
+        {/* Zone Title - Prominent */}
+        <div className="property-group bg-gradient-to-r from-indigo-50 to-purple-50 -mx-4 -mt-4 px-4 py-4 border-b">
+          <Label className="property-label text-indigo-700 font-semibold flex items-center gap-2">
+            <Type className="w-4 h-4" />
+            Título del Elemento
+          </Label>
           <Input
             data-testid="zone-label-input"
             value={zone.label}
             onChange={(e) => onUpdate({ label: e.target.value })}
-            className="h-8 text-sm"
+            className="h-10 text-base font-medium mt-2 border-indigo-200 focus:border-indigo-400 focus:ring-indigo-400"
+            placeholder="Escribe el título..."
           />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Este título aparece en el modo de edición
+          </p>
+        </div>
+
+        {/* Zone Info */}
+        <div className="property-group">
+          <div className="flex items-center justify-between">
+            <span className="property-label">Tipo de elemento</span>
+            <span className="text-xs font-medium px-2 py-0.5 rounded bg-gray-100 text-gray-700">
+              {typeConfig?.label}
+            </span>
+          </div>
         </div>
 
         {/* Position */}
@@ -235,74 +218,39 @@ const ZoneProperties = ({ zone, onUpdate, onDelete, onDuplicate, onBringForward,
 
         {/* Style */}
         <div className="property-group">
-          <Label className="property-label">Estilo</Label>
+          <Label className="property-label">Estilo del Recuadro</Label>
           <div className="space-y-3 mt-2">
-            {/* Border Style */}
-            <div>
-              <Label className="text-[10px] text-muted-foreground">Tipo de borde</Label>
-              <Select
-                value={zone.style?.borderStyle || 'dashed'}
-                onValueChange={(value) => onUpdate({ 
-                  style: { ...zone.style, borderStyle: value } 
-                })}
-              >
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="solid">Sólido</SelectItem>
-                  <SelectItem value="dashed">Discontinuo</SelectItem>
-                  <SelectItem value="none">Sin borde</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Border Color */}
-            <div>
-              <Label className="text-[10px] text-muted-foreground">Color de borde</Label>
-              <ColorPickerInput
-                value={zone.style?.borderColor || '#e5e7eb'}
-                onChange={(color) => onUpdate({ 
-                  style: { ...zone.style, borderColor: color } 
-                })}
-              />
-            </div>
-
-            {/* Border Width */}
-            <div>
-              <Label className="text-[10px] text-muted-foreground">
-                Grosor: {zone.style?.borderWidth || 2}px
-              </Label>
-              <Slider
-                value={[zone.style?.borderWidth || 2]}
-                onValueChange={([value]) => onUpdate({ 
-                  style: { ...zone.style, borderWidth: value } 
-                })}
-                min={0}
-                max={6}
-                step={1}
-                className="mt-2"
-              />
-            </div>
-
             {/* Fill Color */}
             <div>
-              <Label className="text-[10px] text-muted-foreground">Color de relleno</Label>
+              <Label className="text-[10px] text-muted-foreground">Color de fondo</Label>
+              <div className="flex gap-1 mt-1 mb-2">
+                {CARD_COLOR_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => onUpdate({ style: { ...zone.style, fillColor: preset.color } })}
+                    className={`w-6 h-6 rounded border-2 transition-all ${
+                      zone.style?.fillColor === preset.color 
+                        ? 'border-primary scale-110' 
+                        : 'border-gray-200 hover:border-gray-400'
+                    }`}
+                    style={{ backgroundColor: preset.color }}
+                    title={preset.label}
+                  />
+                ))}
+              </div>
               <ColorPickerInput
                 value={zone.style?.fillColor || '#ffffff'}
-                onChange={(color) => onUpdate({ 
-                  style: { ...zone.style, fillColor: color } 
-                })}
+                onChange={(color) => onUpdate({ style: { ...zone.style, fillColor: color } })}
               />
             </div>
 
             {/* Fill Opacity */}
             <div>
               <Label className="text-[10px] text-muted-foreground">
-                Opacidad: {Math.round((zone.style?.fillOpacity ?? 0.1) * 100)}%
+                Opacidad: {Math.round((zone.style?.fillOpacity ?? 1) * 100)}%
               </Label>
               <Slider
-                value={[(zone.style?.fillOpacity ?? 0.1) * 100]}
+                value={[(zone.style?.fillOpacity ?? 1) * 100]}
                 onValueChange={([value]) => onUpdate({ 
                   style: { ...zone.style, fillOpacity: value / 100 } 
                 })}
@@ -316,7 +264,7 @@ const ZoneProperties = ({ zone, onUpdate, onDelete, onDuplicate, onBringForward,
             {/* Corner Radius */}
             <div>
               <Label className="text-[10px] text-muted-foreground">
-                Radio: {zone.style?.cornerRadius || 8}px
+                Radio de esquinas: {zone.style?.cornerRadius || 8}px
               </Label>
               <Slider
                 value={[zone.style?.cornerRadius || 8]}
@@ -329,6 +277,47 @@ const ZoneProperties = ({ zone, onUpdate, onDelete, onDuplicate, onBringForward,
                 className="mt-2"
               />
             </div>
+
+            {/* Shadow Toggle */}
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] text-muted-foreground">Sombra</Label>
+              <Switch
+                checked={zone.style?.shadowEnabled ?? true}
+                onCheckedChange={(checked) => onUpdate({ 
+                  style: { ...zone.style, shadowEnabled: checked } 
+                })}
+              />
+            </div>
+
+            {/* Border Width */}
+            <div>
+              <Label className="text-[10px] text-muted-foreground">
+                Borde: {zone.style?.borderWidth || 0}px
+              </Label>
+              <Slider
+                value={[zone.style?.borderWidth || 0]}
+                onValueChange={([value]) => onUpdate({ 
+                  style: { ...zone.style, borderWidth: value } 
+                })}
+                min={0}
+                max={4}
+                step={1}
+                className="mt-2"
+              />
+            </div>
+
+            {/* Border Color (only if border > 0) */}
+            {(zone.style?.borderWidth || 0) > 0 && (
+              <div>
+                <Label className="text-[10px] text-muted-foreground">Color de borde</Label>
+                <ColorPickerInput
+                  value={zone.style?.borderColor || '#e5e7eb'}
+                  onChange={(color) => onUpdate({ 
+                    style: { ...zone.style, borderColor: color } 
+                  })}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -390,7 +379,7 @@ const ZoneProperties = ({ zone, onUpdate, onDelete, onDuplicate, onBringForward,
 
         {/* Z-Order */}
         <div className="property-group">
-          <Label className="property-label">Orden Z</Label>
+          <Label className="property-label">Orden de Capas</Label>
           <div className="flex gap-2 mt-2">
             <Button 
               variant="outline" 
@@ -415,6 +404,19 @@ const ZoneProperties = ({ zone, onUpdate, onDelete, onDuplicate, onBringForward,
 
         {/* Actions */}
         <div className="space-y-2 pt-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full gap-2"
+            data-testid="copy-zone-btn"
+            onClick={() => {
+              copyZone(zone.id);
+              toast.success("Elemento copiado al portapapeles");
+            }}
+          >
+            <Copy className="w-4 h-4" />
+            Copiar
+          </Button>
           <Button 
             variant="outline" 
             size="sm" 
@@ -471,7 +473,7 @@ const ColorPickerInput = ({ value, onChange }) => {
 const BackgroundSection = ({ background, onUpdate }) => {
   return (
     <div>
-      <Label className="property-label">Fondo del Canvas</Label>
+      <Label className="property-label">Color de Fondo del Canvas</Label>
       
       {/* Presets */}
       <div className="grid grid-cols-3 gap-2 mt-3">
@@ -481,18 +483,14 @@ const BackgroundSection = ({ background, onUpdate }) => {
             data-testid={`bg-preset-${preset.id}`}
             onClick={() => onUpdate(preset)}
             className={`p-2 rounded-lg border-2 transition-all ${
-              background.id === preset.id 
+              background.color === preset.color 
                 ? 'border-primary' 
                 : 'border-transparent hover:border-gray-300'
             }`}
           >
             <div 
               className="w-full aspect-video rounded"
-              style={{ 
-                background: preset.type === 'gradient' 
-                  ? `linear-gradient(${preset.direction === 'vertical' ? 'to bottom' : preset.direction === 'diagonal' ? 'to bottom right' : 'to right'}, ${preset.colors[0]}, ${preset.colors[1]})`
-                  : preset.color 
-              }}
+              style={{ backgroundColor: preset.color }}
             />
             <span className="text-[10px] text-muted-foreground mt-1 block truncate">
               {preset.label}
@@ -502,138 +500,12 @@ const BackgroundSection = ({ background, onUpdate }) => {
       </div>
 
       {/* Custom Color */}
-      {background.type === 'solid' && (
-        <div className="mt-3">
-          <Label className="text-[10px] text-muted-foreground">Color personalizado</Label>
-          <ColorPickerInput
-            value={background.color}
-            onChange={(color) => onUpdate({ ...background, color })}
-          />
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Palette Section Component
-const PaletteSection = ({ palette, onUpdate }) => {
-  return (
-    <div>
-      <Label className="property-label">Paleta de Colores</Label>
-      
-      {/* Current palette */}
-      <div className="flex gap-1 mt-3">
-        {palette.map((color, idx) => (
-          <Popover key={idx}>
-            <PopoverTrigger asChild>
-              <button
-                className="palette-swatch flex-1 aspect-square"
-                style={{ backgroundColor: color }}
-              />
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-3" align="start">
-              <div className="color-picker-wrapper">
-                <HexColorPicker 
-                  color={color} 
-                  onChange={(newColor) => {
-                    const newPalette = [...palette];
-                    newPalette[idx] = newColor;
-                    onUpdate(newPalette);
-                  }} 
-                />
-              </div>
-            </PopoverContent>
-          </Popover>
-        ))}
-      </div>
-
-      {/* Preset palettes */}
-      <div className="mt-3 space-y-2">
-        <Label className="text-[10px] text-muted-foreground">Presets</Label>
-        {PALETTE_PRESETS.map((preset) => (
-          <button
-            key={preset.id}
-            data-testid={`palette-${preset.id}`}
-            onClick={() => onUpdate(preset.colors)}
-            className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <div className="flex gap-0.5">
-              {preset.colors.slice(0, 6).map((color, idx) => (
-                <div 
-                  key={idx}
-                  className="w-4 h-4 rounded-sm"
-                  style={{ backgroundColor: color }}
-                />
-              ))}
-            </div>
-            <span className="text-xs text-gray-600">{preset.label}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Typography Section Component
-const TypographySection = ({ typography, onUpdate }) => {
-  return (
-    <div>
-      <Label className="property-label">Tipografía</Label>
-      <div className="space-y-3 mt-3">
-        <div>
-          <Label className="text-[10px] text-muted-foreground">Fuente</Label>
-          <Select
-            value={typography.fontFamily}
-            onValueChange={(value) => onUpdate({ fontFamily: value })}
-          >
-            <SelectTrigger className="h-8 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Segoe UI">Segoe UI</SelectItem>
-              <SelectItem value="Calibri">Calibri</SelectItem>
-              <SelectItem value="Arial">Arial</SelectItem>
-              <SelectItem value="DM Sans">DM Sans</SelectItem>
-              <SelectItem value="Inter">Inter</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label className="text-[10px] text-muted-foreground">
-            Título: {typography.titleSize}px
-          </Label>
-          <Slider
-            value={[typography.titleSize]}
-            onValueChange={([value]) => onUpdate({ titleSize: value })}
-            min={10}
-            max={36}
-            step={1}
-            className="mt-2"
-          />
-        </div>
-
-        <div>
-          <Label className="text-[10px] text-muted-foreground">
-            Cuerpo: {typography.bodySize}px
-          </Label>
-          <Slider
-            value={[typography.bodySize]}
-            onValueChange={([value]) => onUpdate({ bodySize: value })}
-            min={8}
-            max={24}
-            step={1}
-            className="mt-2"
-          />
-        </div>
-
-        <div>
-          <Label className="text-[10px] text-muted-foreground">Color de texto</Label>
-          <ColorPickerInput
-            value={typography.fontColor}
-            onChange={(color) => onUpdate({ fontColor: color })}
-          />
-        </div>
+      <div className="mt-4">
+        <Label className="text-[10px] text-muted-foreground">Color personalizado</Label>
+        <ColorPickerInput
+          value={background.color || '#f0f0f0'}
+          onChange={(color) => onUpdate({ type: 'solid', color })}
+        />
       </div>
     </div>
   );
@@ -643,26 +515,37 @@ const TypographySection = ({ typography, onUpdate }) => {
 const DefaultStyleSection = ({ style, onUpdate }) => {
   return (
     <div>
-      <Label className="property-label">Estilo por Defecto</Label>
-      <div className="space-y-3 mt-3">
+      <Label className="property-label">Estilo por Defecto de Cards</Label>
+      <p className="text-[10px] text-muted-foreground mb-3">
+        Aplica a nuevos elementos agregados
+      </p>
+      <div className="space-y-3">
         <div>
-          <Label className="text-[10px] text-muted-foreground">Color de borde</Label>
+          <Label className="text-[10px] text-muted-foreground">Color de fondo</Label>
           <ColorPickerInput
-            value={style.borderColor}
-            onChange={(color) => onUpdate({ borderColor: color })}
+            value={style.fillColor}
+            onChange={(color) => onUpdate({ fillColor: color })}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <Label className="text-[10px] text-muted-foreground">Sombra habilitada</Label>
+          <Switch
+            checked={style.shadowEnabled}
+            onCheckedChange={(checked) => onUpdate({ shadowEnabled: checked })}
           />
         </div>
 
         <div>
           <Label className="text-[10px] text-muted-foreground">
-            Opacidad de relleno: {Math.round(style.fillOpacity * 100)}%
+            Radio de esquinas: {style.cornerRadius}px
           </Label>
           <Slider
-            value={[style.fillOpacity * 100]}
-            onValueChange={([value]) => onUpdate({ fillOpacity: value / 100 })}
+            value={[style.cornerRadius]}
+            onValueChange={([value]) => onUpdate({ cornerRadius: value })}
             min={0}
-            max={100}
-            step={5}
+            max={24}
+            step={2}
             className="mt-2"
           />
         </div>
