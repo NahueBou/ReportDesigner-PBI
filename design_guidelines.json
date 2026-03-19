@@ -1,206 +1,140 @@
 {
-  "project_name": "Power BI Mockup Tool",
+  "project_name": "Power BI Report Designer",
   "version": "1.0.0",
-  "design_philosophy": {
-    "identity": "The Digital Architect",
-    "core_principle": "Precision over Decoration. The interface is a drafting table—clean, structural, and invisible, allowing the user's report design to be the hero.",
-    "visual_metaphor": "Swiss Architectural Blueprint",
-    "emotional_tone": "Professional, Efficient, Technical, Crisp"
+  "type": "SaaS Design Tool",
+  "theme_strategy": {
+    "name": "The Architect's Blueprint",
+    "mode": "Hybrid (Dark Sidebar / Light Canvas)",
+    "emotional_tone": "Precision, Clarity, Efficiency",
+    "inspiration": "Figma, Canva, Linear"
   },
   "typography": {
     "font_family": {
       "headings": "Manrope, sans-serif",
       "body": "Inter, sans-serif",
-      "mono": "JetBrains Mono, monospace"
+      "code": "JetBrains Mono, monospace"
+    },
+    "weights": {
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
     },
     "scale": {
-      "h1": "text-4xl font-bold tracking-tight",
-      "h2": "text-2xl font-semibold tracking-tight",
-      "h3": "text-xl font-semibold",
-      "body": "text-sm leading-normal",
-      "small": "text-xs font-medium text-muted-foreground",
-      "label": "text-[11px] uppercase tracking-wider font-semibold text-muted-foreground"
-    },
-    "rules": [
-      "Use 'Manrope' for all page titles, section headers, and the landing page.",
-      "Use 'Inter' for all UI controls (properties panel, inputs, tooltips) for maximum legibility.",
-      "Use 'JetBrains Mono' for data values or formula inputs.",
-      "Headings should have tight tracking (-0.02em).",
-      "Labels should be uppercase and small (11px) to save space in dense panels."
-    ]
-  },
-  "colors": {
-    "theme": "light",
-    "palette": {
-      "primary": {
-        "default": "#2563EB",
-        "foreground": "#FFFFFF",
-        "hover": "#1D4ED8",
-        "description": "Royal Blue - Used for primary actions (Save, Export, Add Page)."
-      },
-      "secondary": {
-        "default": "#F2C811",
-        "foreground": "#000000",
-        "description": "Power BI Gold - Used ONLY for branding elements and identifying Power BI specific features."
-      },
-      "background": {
-        "default": "#FFFFFF",
-        "canvas": "#F3F4F6",
-        "panel": "#FFFFFF"
-      },
-      "surface": {
-        "card": "#FFFFFF",
-        "popover": "#FFFFFF",
-        "border": "#E5E7EB"
-      },
-      "text": {
-        "primary": "#111827",
-        "secondary": "#6B7280",
-        "muted": "#9CA3AF"
-      },
-      "state": {
-        "success": "#10B981",
-        "warning": "#F59E0B",
-        "error": "#EF4444",
-        "info": "#3B82F6"
-      }
-    },
-    "gradients": {
-      "hero": "bg-gradient-to-br from-blue-50 to-white",
-      "selection": "bg-blue-50/50"
+      "xs": "0.75rem",
+      "sm": "0.875rem",
+      "base": "1rem",
+      "lg": "1.125rem",
+      "xl": "1.25rem",
+      "2xl": "1.5rem",
+      "3xl": "1.875rem"
     }
   },
-  "layout_and_grid": {
-    "spacing_system": "Tailwind default (4px base)",
-    "container_width": "max-w-7xl",
-    "grid_styles": {
-      "dashboard_grid": "grid grid-cols-12 gap-4",
-      "properties_panel": "flex flex-col gap-4 p-4 w-[280px] border-l bg-background",
-      "sidebar": "w-[60px] md:w-[240px] border-r bg-background flex flex-col",
-      "canvas_area": "flex-1 bg-gray-100/50 p-8 overflow-auto flex justify-center items-start"
+  "colors": {
+    "palette": {
+      "primary": "#4F46E5",
+      "primary_hover": "#4338CA",
+      "secondary": "#3B82F6",
+      "sidebar_bg": "#1e1e2e",
+      "sidebar_border": "#2d2d3b",
+      "sidebar_text": "#e2e2e2",
+      "sidebar_text_muted": "#a1a1aa",
+      "canvas_bg": "#f3f4f6",
+      "canvas_paper": "#ffffff",
+      "border": "#e5e7eb",
+      "text_main": "#111827",
+      "text_muted": "#6b7280",
+      "power_bi_gold": "#F2C811"
     },
-    "z_index": {
-      "canvas": "z-0",
-      "overlays": "z-10",
-      "panels": "z-20",
-      "modals": "z-50",
-      "toasts": "z-[100]"
+    "chart_colors": {
+      "bar": "#2563EB",
+      "line": "#10B981",
+      "pie": "#8B5CF6",
+      "donut": "#EC4899",
+      "area": "#14B8A6"
+    }
+  },
+  "layout": {
+    "grid_system": "Bento Grid (Sidebar | Canvas | Properties)",
+    "spacing": {
+      "sidebar_width": "280px",
+      "properties_width": "300px",
+      "toolbar_height": "60px"
+    },
+    "z_indices": {
+      "canvas": 0,
+      "overlays": 10,
+      "panels": 20,
+      "modals": 50,
+      "toasts": 100
     }
   },
   "components": {
-    "buttons": {
-      "default": "rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
-      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
-      "ghost": "hover:bg-accent hover:text-accent-foreground",
-      "outline": "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-      "icon": "h-9 w-9 p-0 rounded-md"
+    "button": {
+      "radius": "0.375rem",
+      "variants": ["default", "outline", "ghost", "secondary"],
+      "default_class": "font-medium transition-all active:scale-95"
     },
-    "inputs": {
-      "default": "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-      "label_style": "text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-1.5 block"
+    "input": {
+      "radius": "0.375rem",
+      "bg": "bg-transparent",
+      "border": "border-input"
     },
-    "cards": {
-      "default": "rounded-lg border bg-card text-card-foreground shadow-sm",
-      "interaction": "hover:border-primary/50 transition-colors cursor-pointer"
-    },
-    "dialogs": {
-      "overlay": "fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      "content": "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg"
-    },
-    "drag_and_drop": {
-      "draggable_item": "cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-primary/20 rounded border bg-white shadow-sm p-2 transition-all",
-      "drag_overlay": "opacity-90 scale-105 shadow-xl rotate-2 cursor-grabbing border-primary border-2 z-[999]",
-      "drop_zone": "border-2 border-dashed border-primary/40 bg-blue-50/50 transition-colors"
-    },
-    "power_bi_mockups": {
-      "style": "border border-gray-200 bg-white rounded-sm relative overflow-hidden",
-      "placeholder_content": "text-gray-300 flex items-center justify-center h-full w-full select-none"
+    "card": {
+      "radius": "0.5rem",
+      "shadow": "shadow-sm",
+      "border": "border-border"
     }
   },
   "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-md bg-white/80 border border-white/20",
     "shadows": {
-      "panel": "shadow-[0_0_15px_-3px_rgba(0,0,0,0.05)]",
-      "drag": "shadow-2xl"
+      "soft": "0 2px 8px rgba(0, 0, 0, 0.05)",
+      "float": "0 10px 30px rgba(0, 0, 0, 0.1)"
     },
-    "borders": {
-      "default": "border border-border",
-      "active": "border-primary"
-    },
-    "glassmorphism": {
-      "header": "backdrop-blur-md bg-white/80 border-b",
-      "tooltip": "backdrop-blur-sm bg-black/90 text-white"
+    "gradients": {
+      "subtle_fade": "linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%)"
     }
   },
-  "media": {
-    "icons": {
-      "library": "lucide-react",
-      "style": "stroke-width={1.5} size={18}",
-      "mappings": {
-        "bar_chart": "BarChart3",
-        "line_chart": "LineChart",
-        "pie_chart": "PieChart",
-        "scatter": "ScatterChart",
-        "table": "Table",
-        "map": "Map",
-        "card": "LayoutTemplate",
-        "slicer": "Filter",
-        "save": "Save",
-        "export": "Download",
-        "settings": "Settings2"
-      }
-    },
-    "images": [
+  "image_assets": {
+    "presets": [
       {
-        "category": "hero_background",
-        "url": "https://images.unsplash.com/photo-1770009971150-f50bc7d373a4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwYWJzdHJhY3QlMjBnZW9tZXRyaWMlMjB3aGl0ZSUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzczOTI3MDQ0fDA&ixlib=rb-4.1.0&q=85",
-        "description": "Abstract architectural white geometric shapes for Landing Page Hero Background",
-        "usage": "Use as a subtle background for the landing page hero section with an overlay."
+        "name": "Geometric Tech",
+        "url": "https://images.unsplash.com/photo-1704122545404-56107e7e7adf?q=85&w=1920&auto=format&fit=crop",
+        "category": "texture"
       },
       {
-        "category": "auth_side_panel",
-        "url": "https://images.unsplash.com/photo-1759771963624-0f62023c4c80?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzR8MHwxfHNlYXJjaHwzfHxhYnN0cmFjdCUyMGJsdWUlMjBkYXRhJTIwdmlzdWFsaXphdGlvbiUyMHdhdmVzfGVufDB8fHx8MTc3MzkyNzA0NXww&ixlib=rb-4.1.0&q=85",
-        "description": "Abstract glowing blue data visualization ring",
-        "usage": "Use for the side panel of the Login/Signup page to give a tech/data feel."
+        "name": "Clean Studio",
+        "url": "https://images.unsplash.com/photo-1629724024952-bada03d4e392?q=85&w=1920&auto=format&fit=crop",
+        "category": "texture"
       }
     ]
   },
-  "motion": {
-    "duration": {
-      "fast": "150ms",
-      "normal": "300ms",
-      "slow": "500ms"
-    },
-    "easing": {
-      "default": "cubic-bezier(0.4, 0, 0.2, 1)",
-      "bounce": "cubic-bezier(0.175, 0.885, 0.32, 1.275)"
-    },
-    "patterns": {
-      "hover_lift": "hover:-translate-y-0.5 transition-transform duration-200",
-      "page_enter": "animate-in fade-in slide-in-from-bottom-4 duration-500",
-      "drag_snap": "transition-transform duration-200 cubic-bezier(0.2, 0.8, 0.2, 1)"
-    }
+  "tech_stack_instructions": {
+    "canvas_engine": "react-konva",
+    "state_management": "zustand",
+    "icons": "lucide-react",
+    "styling": "tailwind-merge + clsx"
   },
-  "accessibility": {
-    "contrast_check": "Ensure all text on light backgrounds is #4B5563 or darker.",
-    "focus_states": "All interactive elements must have a visible ring-2 ring-offset-2 ring-primary focus state.",
-    "aria_labels": "All icon-only buttons must have aria-label.",
-    "reduced_motion": "Respect prefers-reduced-motion media query for drag animations."
-  },
-  "universal_guidelines": [
-    "Do NOT use gradients for buttons or cards. Keep them flat and clean.",
-    "Do NOT use rounded-full for buttons unless it's a specific 'pill' toggle.",
-    "Do NOT center-align the dashboard. It should be full-width.",
-    "Use 'sonner' for all notifications.",
-    "Use 'lucide-react' for all icons.",
-    "Always add 'data-testid' to interactive elements.",
-    "Maintain a 'Drafting' feel: Precise lines, light backgrounds, high contrast text."
+  "pbi_visuals": [
+    "card", "bar_chart", "line_chart", "pie_chart", "donut_chart",
+    "table", "matrix", "slicer", "map", "image", "text_box", "shape"
   ],
-  "instructions_to_main_agent": [
-    "1. Setup Tailwind with the custom colors (canvas, panel) and fonts (Manrope, Inter).",
-    "2. Create the Layout Shell first: Sidebar (Components), Topbar (Actions), Rightbar (Properties), Center (Canvas).",
-    "3. Implement the Canvas with a specific aspect ratio (16:9) container to simulate a Power BI report page.",
-    "4. Use Shadcn components for the properties panel inputs to save time.",
-    "5. For the Drag & Drop, ensure the 'ghost' image is clear so the user sees what they are dragging.",
-    "6. The 'Power BI Components' in the sidebar should be simple cards with an icon and a label."
+  "implementation_steps": [
+    "1. Setup Zustand store (useStore) for canvas state (elements, selection, history).",
+    "2. Implement Layout Shell: Sidebar (Left), Toolbar (Top), Properties (Right), Canvas Area (Center).",
+    "3. Build Canvas Component (Konva Stage/Layer). Implement Zoom/Pan.",
+    "4. Create 'Draggable Item' logic: Sidebar -> Canvas (Drop).",
+    "5. Implement Transformer (Resize/Rotate) logic in Konva.",
+    "6. Build Properties Panel: Update selected element attributes (x, y, color, text).",
+    "7. Add 'Export' function: Convert Stage to DataURL (PNG) or SVG string.",
+    "8. Implement 'Background' logic: Solid color, Gradient, or Image."
+  ],
+  "universal_guidelines": [
+    "Use 'sonner' for all notifications (Saved, Exported, Undo).",
+    "Ensure 'data-testid' is present on all interactive elements.",
+    "Dark Mode is ONLY for the Sidebar/Toolbar. The Canvas area is Light (unless user changes background).",
+    "Use 'react-colorful' for color pickers.",
+    "Do NOT use native alerts/confirms. Use custom Dialogs (Shadcn)."
   ]
 }
