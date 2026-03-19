@@ -1,96 +1,73 @@
-/* Additional App specific styles */
+/* App specific overrides */
+.App {
+    min-height: 100vh;
+    overflow: hidden;
+}
 
-/* Canvas grid background */
-.canvas-grid {
+/* Konva stage container */
+.konva-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Zone type badges */
+.zone-type-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+}
+
+/* Sidebar section */
+.sidebar-section {
+    @apply py-3 px-4 border-b;
+    border-color: #2d2d3b;
+}
+
+.sidebar-section-title {
+    @apply text-[11px] uppercase tracking-wider font-semibold mb-3;
+    color: #a1a1aa;
+}
+
+/* Properties panel in light mode */
+.properties-panel {
+    @apply bg-white border-l border-gray-200;
+}
+
+/* Zoom controls */
+.zoom-control {
+    @apply flex items-center gap-1 bg-white rounded-lg shadow-sm border px-2 py-1;
+}
+
+/* Grid overlay */
+.grid-overlay {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
     background-image: 
-        linear-gradient(to right, hsl(220 13% 91% / 0.5) 1px, transparent 1px),
-        linear-gradient(to bottom, hsl(220 13% 91% / 0.5) 1px, transparent 1px);
+        linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px);
     background-size: 20px 20px;
 }
 
-/* Power BI Gold accent */
-.pbi-gold {
-    color: #F2C811;
+/* Preset palette swatch */
+.palette-swatch {
+    @apply w-6 h-6 rounded-md border border-white/20 cursor-pointer transition-transform;
 }
 
-.pbi-gold-bg {
-    background-color: #F2C811;
+.palette-swatch:hover {
+    @apply scale-110;
 }
 
-/* Component type colors */
-.component-bar { --component-color: #2563EB; }
-.component-line { --component-color: #10B981; }
-.component-pie { --component-color: #8B5CF6; }
-.component-donut { --component-color: #EC4899; }
-.component-area { --component-color: #14B8A6; }
-.component-scatter { --component-color: #F59E0B; }
-.component-treemap { --component-color: #6366F1; }
-.component-gauge { --component-color: #EF4444; }
-.component-kpi { --component-color: #2563EB; }
-.component-table { --component-color: #6B7280; }
-.component-matrix { --component-color: #4B5563; }
-.component-slicer { --component-color: #9CA3AF; }
-.component-map { --component-color: #059669; }
-
-/* Page tab styles */
-.page-tab {
-    @apply px-4 py-2 text-sm font-medium border-b-2 border-transparent transition-colors;
+/* Export format card */
+.export-format-card {
+    @apply p-4 rounded-lg border-2 cursor-pointer transition-all;
 }
 
-.page-tab:hover {
-    @apply bg-muted/50;
+.export-format-card:hover {
+    @apply border-primary/50 bg-primary/5;
 }
 
-.page-tab.active {
-    @apply border-primary text-primary;
-}
-
-/* Properties panel input groups */
-.property-group {
-    @apply space-y-3 pb-4 border-b border-border;
-}
-
-.property-group:last-child {
-    @apply border-b-0 pb-0;
-}
-
-.property-label {
-    @apply text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5 block;
-}
-
-/* Export modal preview */
-.export-preview {
-    @apply border rounded-lg overflow-hidden bg-white;
-    aspect-ratio: 16 / 9;
-}
-
-/* Landing page hero */
-.hero-gradient {
-    background: linear-gradient(135deg, hsl(220 14% 96%) 0%, white 100%);
-}
-
-/* Sidebar component item */
-.sidebar-component-item {
-    @apply flex items-center gap-3 p-3 rounded-lg border bg-white cursor-grab transition-all;
-}
-
-.sidebar-component-item:hover {
-    @apply border-primary/30 shadow-sm;
-}
-
-.sidebar-component-item:active {
-    @apply cursor-grabbing scale-[0.98];
-}
-
-/* Canvas wrapper */
-.canvas-wrapper {
-    @apply relative bg-white rounded-lg shadow-sm border overflow-hidden;
-    aspect-ratio: 16 / 9;
-    max-width: 100%;
-}
-
-/* Tooltip styles */
-.custom-tooltip {
-    @apply bg-foreground/90 text-background text-xs px-2 py-1 rounded;
-    backdrop-filter: blur(4px);
+.export-format-card.selected {
+    @apply border-primary bg-primary/10;
 }

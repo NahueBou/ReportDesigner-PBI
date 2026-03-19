@@ -12,10 +12,10 @@
         --card-foreground: 220 13% 9%;
         --popover: 0 0% 100%;
         --popover-foreground: 220 13% 9%;
-        --primary: 221 83% 53%;
+        --primary: 239 84% 67%;
         --primary-foreground: 0 0% 100%;
-        --secondary: 45 96% 51%;
-        --secondary-foreground: 0 0% 0%;
+        --secondary: 217 91% 60%;
+        --secondary-foreground: 0 0% 100%;
         --muted: 220 14% 96%;
         --muted-foreground: 220 9% 46%;
         --accent: 220 14% 96%;
@@ -24,19 +24,18 @@
         --destructive-foreground: 0 0% 98%;
         --border: 220 13% 91%;
         --input: 220 13% 91%;
-        --ring: 221 83% 53%;
+        --ring: 239 84% 67%;
         --radius: 0.5rem;
         
-        /* Canvas specific */
-        --canvas-bg: 220 14% 96%;
-        --panel-bg: 0 0% 100%;
+        /* Sidebar */
+        --sidebar-bg: 240 17% 15%;
+        --sidebar-border: 240 14% 21%;
+        --sidebar-text: 240 6% 89%;
+        --sidebar-text-muted: 240 5% 65%;
         
-        /* Chart colors */
-        --chart-1: 221 83% 53%;
-        --chart-2: 173 58% 39%;
-        --chart-3: 45 96% 51%;
-        --chart-4: 0 84% 60%;
-        --chart-5: 262 83% 58%;
+        /* Canvas */
+        --canvas-bg: 220 14% 96%;
+        --canvas-paper: 0 0% 100%;
     }
 }
 
@@ -52,175 +51,138 @@
         font-family: 'Manrope', sans-serif;
         @apply tracking-tight;
     }
-    code, pre {
-        font-family: 'JetBrains Mono', monospace;
-    }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+/* Custom scrollbar for sidebar */
+.sidebar-scroll::-webkit-scrollbar {
+    width: 6px;
 }
 
-::-webkit-scrollbar-track {
-    background: hsl(var(--muted));
-    border-radius: 4px;
+.sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 4px;
+.sidebar-scroll::-webkit-scrollbar-thumb {
+    background: hsl(var(--sidebar-border));
+    border-radius: 3px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--sidebar-text-muted));
 }
 
-/* Drag and drop styles */
-.draggable-component {
-    cursor: grab;
-    transition: all 150ms ease;
+/* Draggable element styles */
+.draggable-visual {
+    @apply cursor-grab transition-all duration-150;
 }
 
-.draggable-component:active {
-    cursor: grabbing;
+.draggable-visual:active {
+    @apply cursor-grabbing scale-95;
 }
 
-.draggable-component:hover {
-    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+.draggable-visual:hover {
+    @apply ring-2 ring-primary/30;
 }
 
-.drop-zone {
-    transition: all 200ms ease;
+/* Canvas area styles */
+.canvas-container {
+    background-color: hsl(var(--canvas-bg));
+    background-image: 
+        radial-gradient(circle at 1px 1px, rgba(0,0,0,0.05) 1px, transparent 0);
+    background-size: 20px 20px;
 }
 
-.drop-zone.drag-over {
-    background-color: hsl(var(--primary) / 0.05);
-    border-color: hsl(var(--primary) / 0.4);
+/* Zone placeholder styles */
+.zone-placeholder {
+    @apply border-2 border-dashed rounded-lg flex flex-col items-center justify-center transition-colors;
 }
 
-/* Canvas component styles */
-.canvas-component {
-    position: absolute;
-    background: white;
-    border: 1px solid hsl(var(--border));
-    border-radius: 2px;
-    overflow: hidden;
-    transition: box-shadow 150ms ease;
+.zone-placeholder:hover {
+    @apply border-primary/50;
 }
 
-.canvas-component:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+/* Color picker wrapper */
+.color-picker-wrapper .react-colorful {
+    width: 100% !important;
+    height: 180px !important;
 }
 
-.canvas-component.selected {
-    border-color: hsl(var(--primary));
-    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+.color-picker-wrapper .react-colorful__saturation {
+    border-radius: 8px 8px 0 0;
 }
 
-/* Resize handles */
-.resize-handle {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    background: hsl(var(--primary));
-    border: 2px solid white;
-    border-radius: 50%;
-    z-index: 10;
+.color-picker-wrapper .react-colorful__hue {
+    border-radius: 0 0 8px 8px;
+    height: 24px;
+    margin-top: 8px;
 }
 
-.resize-handle.nw { top: -4px; left: -4px; cursor: nw-resize; }
-.resize-handle.ne { top: -4px; right: -4px; cursor: ne-resize; }
-.resize-handle.sw { bottom: -4px; left: -4px; cursor: sw-resize; }
-.resize-handle.se { bottom: -4px; right: -4px; cursor: se-resize; }
-.resize-handle.n { top: -4px; left: 50%; transform: translateX(-50%); cursor: n-resize; }
-.resize-handle.s { bottom: -4px; left: 50%; transform: translateX(-50%); cursor: s-resize; }
-.resize-handle.e { right: -4px; top: 50%; transform: translateY(-50%); cursor: e-resize; }
-.resize-handle.w { left: -4px; top: 50%; transform: translateY(-50%); cursor: w-resize; }
-
-/* Annotation styles */
-.annotation {
-    position: absolute;
-    background: hsl(var(--secondary) / 0.1);
-    border: 2px dashed hsl(var(--secondary));
-    border-radius: 4px;
-    padding: 8px;
-    font-size: 12px;
-    color: hsl(var(--foreground));
+/* Panel transitions */
+.panel-slide-left {
+    animation: slideInLeft 200ms ease-out;
 }
 
-/* Animation utilities */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+.panel-slide-right {
+    animation: slideInRight 200ms ease-out;
 }
 
-@keyframes slideIn {
-    from { 
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to { 
-        opacity: 1;
-        transform: translateY(0);
-    }
+@keyframes slideInLeft {
+    from { transform: translateX(-10px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
 }
 
-.animate-fade-in {
-    animation: fadeIn 200ms ease forwards;
+@keyframes slideInRight {
+    from { transform: translateX(10px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
 }
 
-.animate-slide-in {
-    animation: slideIn 300ms ease forwards;
+/* Selection outline for Konva elements */
+.konva-transformer .konva-anchor {
+    fill: hsl(var(--primary)) !important;
+    stroke: white !important;
 }
 
-/* Power BI component mockup styles */
-.pbi-component {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
-}
-
-.pbi-component-header {
-    padding: 8px 12px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: hsl(var(--muted-foreground));
-    border-bottom: 1px solid hsl(var(--border));
-    background: hsl(var(--muted) / 0.5);
-}
-
-.pbi-component-body {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 12px;
-    color: hsl(var(--muted-foreground) / 0.5);
-}
-
-/* Template card hover effect */
+/* Template card hover */
 .template-card {
-    transition: all 200ms ease;
+    @apply transition-all duration-200;
 }
 
 .template-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1);
+    @apply shadow-lg -translate-y-1;
 }
 
-/* Glass morphism header */
-.glass-header {
-    backdrop-filter: blur(12px);
-    background: rgba(255, 255, 255, 0.8);
+/* Toolbar button active state */
+.toolbar-btn.active {
+    @apply bg-primary/10 text-primary;
 }
 
-@layer base {
-    [data-debug-wrapper="true"] {
-        display: contents !important;
-    }
+/* Property input group */
+.property-group {
+    @apply space-y-2 pb-4 border-b;
+    border-color: #e5e7eb;
+}
+
+.property-group:last-child {
+    @apply border-b-0 pb-0;
+}
+
+.property-label {
+    @apply text-[11px] uppercase tracking-wider font-semibold;
+    color: #a1a1aa;
+}
+
+/* Export button glow */
+.export-btn {
+    @apply relative overflow-hidden;
+}
+
+.export-btn::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-primary/0 via-white/20 to-primary/0;
+    transform: translateX(-100%);
+    transition: transform 0.5s;
+}
+
+.export-btn:hover::before {
+    transform: translateX(100%);
 }

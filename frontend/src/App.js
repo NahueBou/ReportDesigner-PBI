@@ -1,18 +1,11 @@
 import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
-import LandingPage from "@/pages/LandingPage";
-import EditorPage from "@/pages/EditorPage";
+import Designer from "@/pages/Designer";
 
 function App() {
   return (
-    <div className="App min-h-screen bg-background">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/editor/:projectId" element={<EditorPage />} />
-        </Routes>
-      </BrowserRouter>
+    <div className="App">
+      <Designer />
       <Toaster position="bottom-right" />
     </div>
   );
