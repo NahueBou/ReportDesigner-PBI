@@ -8,19 +8,26 @@ const Canvas = () => {
   
   const {
     canvasSize,
-    background,
+    getBackground,
+    getZones,
     showGrid,
     zoom,
-    zones,
     selectedZoneId,
     previewMode,
     showVisualizations,
     chartPalette,
+    alignmentGuides,
+    showAlignmentGuides,
     selectZone,
     clearSelection,
     updateZone,
-    addZone
+    addZone,
+    calculateAlignmentGuides,
+    setAlignmentGuides
   } = useDesignerStore();
+
+  const zones = getZones();
+  const background = getBackground();
 
   // Store ref for export
   useEffect(() => {
@@ -93,6 +100,35 @@ const Canvas = () => {
 
   const colors = CHART_PALETTES[chartPalette] || CHART_PALETTES.default;
 
+  // Render alignment guides
+  const renderAlignmentGuides = () => {
+    if (!showAlignmentGuides || previewMode || alignmentGuides.length === 0) return null;
+    
+    return alignmentGuides.map((guide, i) => {
+      if (guide.type === 'vertical') {
+        return (
+          <Line
+            key={`guide-v-${i}`}
+            points={[guide.x, guide.y1 - 10, guide.x, guide.y2 + 10]}
+            stroke="#f43f5e"
+            strokeWidth={1}
+            dash={[4, 4]}
+          />
+        );
+      } else {
+        return (
+          <Line
+            key={`guide-h-${i}`}
+            points={[guide.x1 - 10, guide.y, guide.x2 + 10, guide.y]}
+            stroke="#f43f5e"
+            strokeWidth={1}
+            dash={[4, 4]}
+          />
+        );
+      }
+    });
+  };
+
   return (
     <div 
       ref={containerRef}
@@ -125,11 +161,19 @@ const Canvas = () => {
                   isSelected={selectedZoneId === zone.id && !previewMode}
                   onSelect={() => selectZone(zone.id)}
                   onUpdate={(updates) => updateZone(zone.id, updates)}
+                  onDragMove={(newX, newY) => {
+                    const guides = calculateAlignmentGuides(zone.id, newX, newY, zone.width, zone.height);
+                    setAlignmentGuides(guides);
+                  }}
+                  onDragEnd={() => setAlignmentGuides([])}
                   previewMode={previewMode}
                   showVisualizations={showVisualizations && !previewMode}
                   colors={colors}
                 />
               ))}
+            
+            {/* Render alignment guides on top */}
+            {renderAlignmentGuides()}
           </Layer>
         </Stage>
       </div>
@@ -138,7 +182,7 @@ const Canvas = () => {
 };
 
 // Zone Element Component
-const ZoneElement = ({ zone, isSelected, onSelect, onUpdate, previewMode, showVisualizations, colors }) => {
+const ZoneElement = ({ zone, isSelected, onSelect, onUpdate, onDragMove, onDragEnd: onDragEndCallback, previewMode, showVisualizations, colors }) => {
   const shapeRef = useRef();
   const transformerRef = useRef();
   const typeConfig = ZONE_TYPES[zone.type];
@@ -150,8 +194,17 @@ const ZoneElement = ({ zone, isSelected, onSelect, onUpdate, previewMode, showVi
     }
   }, [isSelected]);
 
+  const handleDragMove = (e) => {
+    if (onDragMove) {
+      onDragMove(e.target.x(), e.target.y());
+    }
+  };
+
   const handleDragEnd = (e) => {
     onUpdate({ x: e.target.x(), y: e.target.y() });
+    if (onDragEndCallback) {
+      onDragEndCallback();
+    }
   };
 
   const handleTransformEnd = () => {
@@ -166,6 +219,9 @@ const ZoneElement = ({ zone, isSelected, onSelect, onUpdate, previewMode, showVi
       width: Math.max(50, node.width() * scaleX),
       height: Math.max(30, node.height() * scaleY)
     });
+    if (onDragEndCallback) {
+      onDragEndCallback();
+    }
   };
 
   // Style
@@ -187,6 +243,7 @@ const ZoneElement = ({ zone, isSelected, onSelect, onUpdate, previewMode, showVi
         draggable={!previewMode}
         onClick={onSelect}
         onTap={onSelect}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       >

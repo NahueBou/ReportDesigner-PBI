@@ -44,19 +44,21 @@ import useDesignerStore, {
 const PropertiesPanel = () => {
   const {
     selectedZoneId,
-    zones,
+    getZones,
+    getBackground,
     updateZone,
     deleteZone,
     duplicateZone,
     bringForward,
     sendBackward,
     alignZones,
-    background,
     setBackground,
     defaultZoneStyle,
     setDefaultZoneStyle
   } = useDesignerStore();
 
+  const zones = getZones();
+  const background = getBackground();
   const selectedZone = zones.find(z => z.id === selectedZoneId);
 
   return (

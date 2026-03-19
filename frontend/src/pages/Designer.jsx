@@ -6,6 +6,7 @@ import Sidebar from "@/components/designer/Sidebar";
 import Canvas from "@/components/designer/Canvas";
 import PropertiesPanel from "@/components/designer/PropertiesPanel";
 import TemplateModal from "@/components/designer/TemplateModal";
+import PageTabs from "@/components/designer/PageTabs";
 import { useState } from "react";
 
 const Designer = () => {
@@ -71,8 +72,12 @@ const Designer = () => {
         <Sidebar onOpenTemplates={() => setShowTemplateModal(true)} />
 
         {/* Canvas Area */}
-        <div className="flex-1 overflow-auto">
-          <Canvas />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-auto">
+            <Canvas />
+          </div>
+          {/* Page Tabs at bottom */}
+          <PageTabs />
         </div>
 
         {/* Right Properties Panel */}

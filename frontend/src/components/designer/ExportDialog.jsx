@@ -25,7 +25,8 @@ import useDesignerStore from "@/store/designerStore";
 const ExportDialog = ({ open, onOpenChange }) => {
   const [exporting, setExporting] = useState(false);
   const [copied, setCopied] = useState(false);
-  const { canvasSize, getExportJSON, zones, setPreviewMode, previewMode } = useDesignerStore();
+  const { canvasSize, getExportJSON, getZones, setPreviewMode, previewMode } = useDesignerStore();
+  const zones = getZones();
 
   const exportAsPNG = async () => {
     setExporting(true);
@@ -96,7 +97,9 @@ const ExportDialog = ({ open, onOpenChange }) => {
 
   const generateSVG = () => {
     const state = useDesignerStore.getState();
-    const { background, zones, canvasSize } = state;
+    const { getBackground, getZones, canvasSize } = state;
+    const background = getBackground();
+    const zones = getZones();
     
     const bgColor = background.color || '#f0f0f0';
 
