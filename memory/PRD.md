@@ -35,6 +35,10 @@ Professional web application for business users to design Power BI report backgr
 ✅ Keyboard shortcuts (Delete, Ctrl+D, Ctrl+Z, Ctrl+Y, Escape)
 ✅ Dark sidebar (#1e1e2e) / light canvas aesthetic
 ✅ React-colorful for color pickers
+✅ **Copiar/Pegar elementos** (Ctrl+C/Ctrl+V + botones toolbar)
+✅ **Alineación de elementos** (6 direcciones: izq/centro/der/arriba/medio/abajo)
+✅ **Edición de títulos prominente** en panel de propiedades
+✅ **Botón eliminar** en toolbar + tecla Delete
 
 ## P0 Features Remaining
 - None (MVP complete)
@@ -57,3 +61,4 @@ Professional web application for business users to design Power BI report backgr
 1. Add header/footer builder panel
 2. Implement snap-to-grid toggle
 3. Add alignment guides when dragging
+4. Translate remaining UI text to Spanish
