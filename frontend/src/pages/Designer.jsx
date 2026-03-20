@@ -5,7 +5,7 @@ import Toolbar from "@/components/designer/Toolbar";
 import Sidebar from "@/components/designer/Sidebar";
 import Canvas from "@/components/designer/Canvas";
 import PropertiesPanel from "@/components/designer/PropertiesPanel";
-import TemplateModal from "@/components/designer/TemplateModal";
+import TemplateWizard from "@/components/designer/TemplateWizard";
 import PageTabs from "@/components/designer/PageTabs";
 import { useState } from "react";
 
@@ -69,7 +69,10 @@ const Designer = () => {
       {/* Main Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar */}
-        <Sidebar onOpenTemplates={() => setShowTemplateModal(true)} />
+        <Sidebar
+          onOpenTemplates={() => setShowTemplateModal(true)}
+          onOpenWizard={() => setShowTemplateModal(true)}
+        />
 
         {/* Canvas Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -84,9 +87,9 @@ const Designer = () => {
         <PropertiesPanel />
       </div>
 
-      {/* Template Modal */}
-      <TemplateModal 
-        open={showTemplateModal} 
+      {/* Template Wizard */}
+      <TemplateWizard
+        open={showTemplateModal}
         onOpenChange={setShowTemplateModal}
       />
     </div>

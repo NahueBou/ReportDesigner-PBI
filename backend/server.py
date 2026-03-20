@@ -1,14 +1,17 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from passlib.context import CryptContext
+from jose import jwt, JWTError
 import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -18,11 +21,83 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# Auth configuration
+SECRET_KEY = os.environ.get("SECRET_KEY", "reportdesigner-secret-2024-intranet")
+ALGORITHM = "HS256"
+TOKEN_EXPIRE_HOURS = 48
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+bearer_scheme = HTTPBearer(auto_error=False)
+
 # Create the main app
 app = FastAPI()
 
-# Create a router with the /api prefix
+# Create routers
 api_router = APIRouter(prefix="/api")
+auth_router = APIRouter(prefix="/auth")
+
+# ============== AUTH MODELS ==============
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    username: str
+
+# ============== AUTH HELPERS ==============
+
+def create_access_token(username: str) -> str:
+    expire = datetime.utcnow() + timedelta(hours=TOKEN_EXPIRE_HOURS)
+    return jwt.encode({"sub": username, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> str:
+    if not credentials:
+        raise HTTPException(status_code=401, detail="No autenticado")
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        if not username:
+            raise HTTPException(status_code=401, detail="Token inválido")
+        return username
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+
+# ============== AUTH ENDPOINTS ==============
+
+@auth_router.post("/register", response_model=Token)
+async def register(input: UserCreate):
+    """Create a new user account"""
+    existing = await db.users.find_one({"username": input.username}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail="El usuario ya existe")
+    hashed = pwd_context.hash(input.password)
+    await db.users.insert_one({
+        "username": input.username,
+        "hashed_password": hashed,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    token = create_access_token(input.username)
+    return Token(access_token=token, username=input.username)
+
+@auth_router.post("/login", response_model=Token)
+async def login(input: UserLogin):
+    """Login and receive a JWT token"""
+    user = await db.users.find_one({"username": input.username}, {"_id": 0})
+    if not user or not pwd_context.verify(input.password, user["hashed_password"]):
+        raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
+    token = create_access_token(input.username)
+    return Token(access_token=token, username=input.username)
+
+@auth_router.get("/me")
+async def me(current_user: str = Depends(get_current_user)):
+    """Get current logged-in user info"""
+    return {"username": current_user}
 
 # ============== MODELS ==============
 
@@ -113,13 +188,13 @@ async def root():
     return {"message": "Power BI Mockup Tool API"}
 
 @api_router.get("/projects", response_model=List[Project])
-async def get_projects():
+async def get_projects(current_user: str = Depends(get_current_user)):
     """Get all projects"""
     projects = await db.projects.find({}, {"_id": 0}).to_list(1000)
     return [deserialize_project(p) for p in projects]
 
 @api_router.post("/projects", response_model=Project)
-async def create_project(input: ProjectCreate):
+async def create_project(input: ProjectCreate, current_user: str = Depends(get_current_user)):
     """Create a new project"""
     project = Project(
         name=input.name,
@@ -133,7 +208,7 @@ async def create_project(input: ProjectCreate):
     return project
 
 @api_router.get("/projects/{project_id}", response_model=Project)
-async def get_project(project_id: str):
+async def get_project(project_id: str, current_user: str = Depends(get_current_user)):
     """Get a specific project"""
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
     if not project:
@@ -141,7 +216,7 @@ async def get_project(project_id: str):
     return deserialize_project(project)
 
 @api_router.put("/projects/{project_id}", response_model=Project)
-async def update_project(project_id: str, input: ProjectUpdate):
+async def update_project(project_id: str, input: ProjectUpdate, current_user: str = Depends(get_current_user)):
     """Update a project"""
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
     if not project:
@@ -159,7 +234,7 @@ async def update_project(project_id: str, input: ProjectUpdate):
     return deserialize_project(updated)
 
 @api_router.delete("/projects/{project_id}")
-async def delete_project(project_id: str):
+async def delete_project(project_id: str, current_user: str = Depends(get_current_user)):
     """Delete a project"""
     result = await db.projects.delete_one({"id": project_id})
     if result.deleted_count == 0:
@@ -357,7 +432,8 @@ async def get_templates():
     ]
     return templates
 
-# Include the router in the main app
+# Include routers
+app.include_router(auth_router)
 app.include_router(api_router)
 
 app.add_middleware(

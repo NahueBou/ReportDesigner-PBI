@@ -98,8 +98,11 @@ const PropertiesPanel = () => {
                   <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
                     <Type className="w-5 h-5 text-gray-400" />
                   </div>
-                  <p className="text-sm text-gray-500">
-                    Selecciona un elemento para editar sus propiedades
+                  <p className="text-sm font-medium text-gray-600 mb-1">
+                    Ningún elemento seleccionado
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Hacé clic en cualquier componente del canvas para ver y editar sus propiedades
                   </p>
                 </div>
               </div>

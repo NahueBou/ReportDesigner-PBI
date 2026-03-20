@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { jsPDF } from "jspdf";
 import {
   Download,
   Image,
   FileJson,
   FileCode,
+  FileText,
   Copy,
   Check,
   Loader2,
@@ -163,6 +165,43 @@ const ExportDialog = ({ open, onOpenChange }) => {
 </svg>`;
   };
 
+  const exportAsPDF = async () => {
+    setExporting(true);
+
+    try {
+      setPreviewMode(true);
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      const stage = window.konvaStage;
+      if (!stage) throw new Error('Canvas not found');
+
+      const dataURL = stage.toDataURL({ pixelRatio: 2, mimeType: 'image/png' });
+
+      const isLandscape = canvasSize.width > canvasSize.height;
+      const pdfW = isLandscape ? 297 : 210;
+      const pdfH = isLandscape ? 210 : 297;
+      const aspectRatio = canvasSize.height / canvasSize.width;
+      const imgH = Math.min(pdfW * aspectRatio, pdfH);
+
+      const pdf = new jsPDF({
+        orientation: isLandscape ? 'landscape' : 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      pdf.addImage(dataURL, 'PNG', 0, 0, pdfW, imgH);
+      pdf.save(`powerbi-mockup-${canvasSize.width}x${canvasSize.height}.pdf`);
+
+      toast.success("PDF exportado exitosamente");
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast.error("Error al exportar PDF");
+    } finally {
+      setPreviewMode(false);
+      setExporting(false);
+    }
+  };
+
   const exportAsJSON = async () => {
     setExporting(true);
     
@@ -213,6 +252,13 @@ const ExportDialog = ({ open, onOpenChange }) => {
       title: 'Vector SVG',
       description: 'Escalable sin pérdida de calidad',
       action: exportAsSVG,
+    },
+    {
+      id: 'pdf',
+      icon: FileText,
+      title: 'Documento PDF',
+      description: 'Para compartir el mockup con el equipo de negocio en formato presentación',
+      action: exportAsPDF,
     },
     {
       id: 'json',

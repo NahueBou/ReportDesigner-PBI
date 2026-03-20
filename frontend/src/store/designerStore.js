@@ -154,6 +154,7 @@ const createDefaultPage = (id, name = 'Página 1') => ({
   id,
   name,
   zones: [],
+  annotations: [],
   background: { type: 'solid', color: '#f0f0f0' },
 });
 
@@ -179,8 +180,16 @@ const useDesignerStore = create((set, get) => ({
   get zones() {
     return get().getCurrentPage()?.zones || [];
   },
+  // Selection: selectedZoneIds is the source of truth.
+  // selectedZoneId is always the last element (for backward compat with PropertiesPanel).
+  selectedZoneIds: [],
   selectedZoneId: null,
-  
+
+  // Annotations / Comments
+  selectedAnnotationId: null,
+  commentMode: false,
+  showAnnotations: true,
+
   // Alignment guides
   alignmentGuides: [],
   showAlignmentGuides: true,
@@ -210,7 +219,15 @@ const useDesignerStore = create((set, get) => ({
   previewMode: false,
   // Show visualizations toggle
   showVisualizations: true,
-  
+
+  // Project management
+  projectId: null,
+  projectName: 'Sin título',
+  projectDescription: '',
+  isSaving: false,
+  lastSaved: null,
+  hasUnsavedChanges: false,
+
   // Page management
   addPage: (name = null) => {
     const state = get();
@@ -219,57 +236,65 @@ const useDesignerStore = create((set, get) => ({
     set({
       pages: [...state.pages, newPage],
       currentPageId: newPage.id,
-      selectedZoneId: null
+      selectedZoneIds: [],
+      selectedZoneId: null,
+      hasUnsavedChanges: true,
     });
     return newPage.id;
   },
-  
+
   deletePage: (pageId) => {
     const state = get();
-    if (state.pages.length <= 1) return; // Can't delete last page
-    
+    if (state.pages.length <= 1) return;
+
     const newPages = state.pages.filter(p => p.id !== pageId);
-    const newCurrentId = pageId === state.currentPageId 
-      ? newPages[0].id 
+    const newCurrentId = pageId === state.currentPageId
+      ? newPages[0].id
       : state.currentPageId;
-    
+
     set({
       pages: newPages,
       currentPageId: newCurrentId,
-      selectedZoneId: null
+      selectedZoneIds: [],
+      selectedZoneId: null,
+      hasUnsavedChanges: true,
     });
   },
-  
+
   duplicatePage: (pageId) => {
     const state = get();
     const page = state.pages.find(p => p.id === pageId);
     if (!page) return;
-    
+
     const newPage = {
       ...page,
       id: generatePageId(),
       name: `${page.name} (copia)`,
-      zones: page.zones.map(z => ({ ...z, id: generateId() }))
+      zones: page.zones.map(z => ({ ...z, id: generateId() })),
+      annotations: (page.annotations || []).map(a => ({ ...a, id: `ann_${uuidv4().slice(0, 8)}` }))
     };
-    
+
     set({
       pages: [...state.pages, newPage],
       currentPageId: newPage.id,
-      selectedZoneId: null
+      selectedZoneIds: [],
+      selectedZoneId: null,
+      hasUnsavedChanges: true,
     });
     return newPage.id;
   },
-  
+
   renamePage: (pageId, name) => {
     set((state) => ({
-      pages: state.pages.map(p => 
+      pages: state.pages.map(p =>
         p.id === pageId ? { ...p, name } : p
-      )
+      ),
+      hasUnsavedChanges: true,
     }));
   },
-  
+
   setCurrentPage: (pageId) => {
-    set({ currentPageId: pageId, selectedZoneId: null });
+    set({ currentPageId: pageId, selectedZoneIds: [], selectedZoneId: null });
   },
   
   // Get zones for current page
@@ -331,13 +356,15 @@ const useDesignerStore = create((set, get) => ({
     const newZones = [...currentZones, newZone];
     
     set((state) => ({
-      pages: state.pages.map(p => 
+      pages: state.pages.map(p =>
         p.id === state.currentPageId ? { ...p, zones: newZones } : p
       ),
+      selectedZoneIds: [newZone.id],
       selectedZoneId: newZone.id,
+      hasUnsavedChanges: true,
       ...get().saveHistory(newZones)
     }));
-    
+
     return newZone.id;
   },
   
@@ -359,11 +386,32 @@ const useDesignerStore = create((set, get) => ({
     set((state) => {
       const currentPage = state.pages.find(p => p.id === state.currentPageId);
       const newZones = (currentPage?.zones || []).filter(z => z.id !== id);
+      const newIds = state.selectedZoneIds.filter(sid => sid !== id);
       return {
-        pages: state.pages.map(p => 
+        pages: state.pages.map(p =>
           p.id === state.currentPageId ? { ...p, zones: newZones } : p
         ),
-        selectedZoneId: state.selectedZoneId === id ? null : state.selectedZoneId,
+        selectedZoneIds: newIds,
+        selectedZoneId: newIds[newIds.length - 1] ?? null,
+        hasUnsavedChanges: true,
+        ...get().saveHistory(newZones)
+      };
+    });
+  },
+
+  deleteSelectedZones: () => {
+    set((state) => {
+      const ids = state.selectedZoneIds;
+      if (!ids.length) return {};
+      const currentPage = state.pages.find(p => p.id === state.currentPageId);
+      const newZones = (currentPage?.zones || []).filter(z => !ids.includes(z.id));
+      return {
+        pages: state.pages.map(p =>
+          p.id === state.currentPageId ? { ...p, zones: newZones } : p
+        ),
+        selectedZoneIds: [],
+        selectedZoneId: null,
+        hasUnsavedChanges: true,
         ...get().saveHistory(newZones)
       };
     });
@@ -387,14 +435,16 @@ const useDesignerStore = create((set, get) => ({
     const newZones = [...zones, newZone];
     
     set((state) => ({
-      pages: state.pages.map(p => 
+      pages: state.pages.map(p =>
         p.id === state.currentPageId ? { ...p, zones: newZones } : p
       ),
+      selectedZoneIds: [newZone.id],
       selectedZoneId: newZone.id,
+      hasUnsavedChanges: true,
       ...get().saveHistory(newZones)
     }));
   },
-  
+
   // Copy zone to clipboard
   copyZone: (id) => {
     const state = get();
@@ -424,17 +474,27 @@ const useDesignerStore = create((set, get) => ({
     const newZones = [...zones, newZone];
     
     set((state) => ({
-      pages: state.pages.map(p => 
+      pages: state.pages.map(p =>
         p.id === state.currentPageId ? { ...p, zones: newZones } : p
       ),
+      selectedZoneIds: [newZone.id],
       selectedZoneId: newZone.id,
       clipboard: { ...newZone, x: newZone.x, y: newZone.y },
       ...get().saveHistory(newZones)
     }));
   },
-  
-  selectZone: (id) => set({ selectedZoneId: id }),
-  clearSelection: () => set({ selectedZoneId: null, alignmentGuides: [] }),
+
+  selectZone: (id) => set({ selectedZoneIds: [id], selectedZoneId: id }),
+  toggleZoneSelection: (id) => set(state => {
+    const ids = state.selectedZoneIds;
+    const newIds = ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id];
+    return { selectedZoneIds: newIds, selectedZoneId: newIds[newIds.length - 1] ?? null };
+  }),
+  setSelectedZoneIds: (ids) => set({
+    selectedZoneIds: ids,
+    selectedZoneId: ids[ids.length - 1] ?? null
+  }),
+  clearSelection: () => set({ selectedZoneIds: [], selectedZoneId: null, alignmentGuides: [] }),
   
   // Z-order
   bringForward: (id) => {
@@ -471,28 +531,105 @@ const useDesignerStore = create((set, get) => ({
     });
   },
   
-  // Alignment
+  // Alignment — supports single zone (to canvas) and multi-zone (to each other)
   alignZones: (alignment) => {
     const state = get();
-    if (!state.selectedZoneId) return;
-    
+    const ids = state.selectedZoneIds;
+    if (!ids.length) return;
+
     const currentPage = state.pages.find(p => p.id === state.currentPageId);
     const zones = currentPage?.zones || [];
-    const zone = zones.find(z => z.id === state.selectedZoneId);
-    if (!zone) return;
-    
-    let updates = {};
-    switch (alignment) {
-      case 'left': updates.x = 40; break;
-      case 'center': updates.x = (state.canvasSize.width - zone.width) / 2; break;
-      case 'right': updates.x = state.canvasSize.width - zone.width - 40; break;
-      case 'top': updates.y = 40; break;
-      case 'middle': updates.y = (state.canvasSize.height - zone.height) / 2; break;
-      case 'bottom': updates.y = state.canvasSize.height - zone.height - 40; break;
-      default: break;
+    const selected = zones.filter(z => ids.includes(z.id));
+    if (!selected.length) return;
+
+    let newZones;
+
+    if (ids.length === 1) {
+      // Single zone → align to canvas
+      const zone = selected[0];
+      const CANVAS_W = state.canvasSize.width;
+      const CANVAS_H = state.canvasSize.height;
+      const updates = (() => {
+        switch (alignment) {
+          case 'left': return { x: 0 };
+          case 'center': return { x: (CANVAS_W - zone.width) / 2 };
+          case 'right': return { x: CANVAS_W - zone.width };
+          case 'top': return { y: 0 };
+          case 'middle': return { y: (CANVAS_H - zone.height) / 2 };
+          case 'bottom': return { y: CANVAS_H - zone.height };
+          default: return {};
+        }
+      })();
+      newZones = zones.map(z => z.id === zone.id ? { ...z, ...updates } : z);
+    } else {
+      // Multiple zones → align relative to each other
+      const minX = Math.min(...selected.map(z => z.x));
+      const maxRight = Math.max(...selected.map(z => z.x + z.width));
+      const minY = Math.min(...selected.map(z => z.y));
+      const maxBottom = Math.max(...selected.map(z => z.y + z.height));
+      const centerX = (minX + maxRight) / 2;
+      const centerY = (minY + maxBottom) / 2;
+
+      newZones = zones.map(z => {
+        if (!ids.includes(z.id)) return z;
+        switch (alignment) {
+          case 'left': return { ...z, x: minX };
+          case 'center': return { ...z, x: centerX - z.width / 2 };
+          case 'right': return { ...z, x: maxRight - z.width };
+          case 'top': return { ...z, y: minY };
+          case 'middle': return { ...z, y: centerY - z.height / 2 };
+          case 'bottom': return { ...z, y: maxBottom - z.height };
+          default: return z;
+        }
+      });
     }
-    
-    get().updateZone(state.selectedZoneId, updates);
+
+    set((state) => ({
+      pages: state.pages.map(p =>
+        p.id === state.currentPageId ? { ...p, zones: newZones } : p
+      ),
+      ...get().saveHistory(newZones)
+    }));
+  },
+
+  // Distribute selected zones evenly (requires ≥3 zones)
+  distributeZones: (direction) => {
+    const state = get();
+    const ids = state.selectedZoneIds;
+    if (ids.length < 3) return;
+
+    const currentPage = state.pages.find(p => p.id === state.currentPageId);
+    const zones = currentPage?.zones || [];
+    const selected = zones.filter(z => ids.includes(z.id));
+
+    let newZones;
+
+    if (direction === 'horizontal') {
+      const sorted = [...selected].sort((a, b) => a.x - b.x);
+      const totalWidth = sorted.reduce((sum, z) => sum + z.width, 0);
+      const span = sorted[sorted.length - 1].x + sorted[sorted.length - 1].width - sorted[0].x;
+      const gap = (span - totalWidth) / (sorted.length - 1);
+      let currentX = sorted[0].x;
+      const positions = {};
+      sorted.forEach(z => { positions[z.id] = currentX; currentX += z.width + gap; });
+      newZones = zones.map(z => ids.includes(z.id) ? { ...z, x: positions[z.id] } : z);
+    } else {
+      const sorted = [...selected].sort((a, b) => a.y - b.y);
+      const totalHeight = sorted.reduce((sum, z) => sum + z.height, 0);
+      const span = sorted[sorted.length - 1].y + sorted[sorted.length - 1].height - sorted[0].y;
+      const gap = (span - totalHeight) / (sorted.length - 1);
+      let currentY = sorted[0].y;
+      const positions = {};
+      sorted.forEach(z => { positions[z.id] = currentY; currentY += z.height + gap; });
+      newZones = zones.map(z => ids.includes(z.id) ? { ...z, y: positions[z.id] } : z);
+    }
+
+    set((state) => ({
+      pages: state.pages.map(p =>
+        p.id === state.currentPageId ? { ...p, zones: newZones } : p
+      ),
+      ...get().saveHistory(newZones)
+    }));
   },
   
   // Calculate alignment guides
@@ -571,11 +708,80 @@ const useDesignerStore = create((set, get) => ({
     return guides;
   },
   
+  // Annotations / Comments
+  getAnnotations: () => {
+    const state = get();
+    const page = state.pages.find(p => p.id === state.currentPageId);
+    return page?.annotations || [];
+  },
+  addAnnotation: (x, y) => {
+    const author = localStorage.getItem('rd_username') || 'Usuario';
+    const newAnnotation = {
+      id: `ann_${uuidv4().slice(0, 8)}`,
+      text: '',
+      color: '#F59E0B',
+      x,
+      y,
+      author,
+      createdAt: new Date().toLocaleDateString('es-AR'),
+    };
+    set((state) => ({
+      pages: state.pages.map(p =>
+        p.id === state.currentPageId
+          ? { ...p, annotations: [...(p.annotations || []), newAnnotation] }
+          : p
+      ),
+      selectedAnnotationId: newAnnotation.id,
+    }));
+  },
+  updateAnnotation: (id, updates) => {
+    set((state) => ({
+      pages: state.pages.map(p =>
+        p.id === state.currentPageId
+          ? { ...p, annotations: (p.annotations || []).map(a => a.id === id ? { ...a, ...updates } : a) }
+          : p
+      ),
+    }));
+  },
+  deleteAnnotation: (id) => {
+    set((state) => ({
+      pages: state.pages.map(p =>
+        p.id === state.currentPageId
+          ? { ...p, annotations: (p.annotations || []).filter(a => a.id !== id) }
+          : p
+      ),
+      selectedAnnotationId: state.selectedAnnotationId === id ? null : state.selectedAnnotationId,
+    }));
+  },
+  selectAnnotation: (id) => set({ selectedAnnotationId: id }),
+  clearAnnotationSelection: () => set({ selectedAnnotationId: null }),
+  setCommentMode: (val) => set({ commentMode: val }),
+  setShowAnnotations: (val) => set({ showAnnotations: val }),
+
+  // Seed zones from wizard-generated layout
+  seedZones: (zones) => {
+    const newZones = zones.map((z, i) => ({
+      id: z.id || `zone_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}`,
+      ...z,
+      style: z.style || { ...get().defaultZoneStyle },
+      visualConfig: z.visualConfig || {},
+      zIndex: i
+    }));
+    set((state) => ({
+      pages: state.pages.map(p =>
+        p.id === state.currentPageId ? { ...p, zones: newZones } : p
+      ),
+      selectedZoneIds: [],
+      selectedZoneId: null,
+      ...get().saveHistory(newZones)
+    }));
+  },
+
   // Templates
   loadTemplate: (templateId) => {
     const template = LAYOUT_TEMPLATES.find(t => t.id === templateId);
     if (!template) return;
-    
+
     const newZones = template.zones.map((z, i) => ({
       id: generateId(),
       ...z,
@@ -583,11 +789,12 @@ const useDesignerStore = create((set, get) => ({
       visualConfig: z.visualConfig || {},
       zIndex: i
     }));
-    
+
     set((state) => ({
-      pages: state.pages.map(p => 
+      pages: state.pages.map(p =>
         p.id === state.currentPageId ? { ...p, zones: newZones } : p
       ),
+      selectedZoneIds: [],
       selectedZoneId: null,
       ...get().saveHistory(newZones)
     }));
@@ -608,25 +815,27 @@ const useDesignerStore = create((set, get) => ({
       const newIndex = state.historyIndex - 1;
       const zones = JSON.parse(state.history[newIndex]);
       set((state) => ({
-        pages: state.pages.map(p => 
+        pages: state.pages.map(p =>
           p.id === state.currentPageId ? { ...p, zones } : p
         ),
         historyIndex: newIndex,
+        selectedZoneIds: [],
         selectedZoneId: null
       }));
     }
   },
-  
+
   redo: () => {
     const state = get();
     if (state.historyIndex < state.history.length - 1) {
       const newIndex = state.historyIndex + 1;
       const zones = JSON.parse(state.history[newIndex]);
       set((state) => ({
-        pages: state.pages.map(p => 
+        pages: state.pages.map(p =>
           p.id === state.currentPageId ? { ...p, zones } : p
         ),
         historyIndex: newIndex,
+        selectedZoneIds: [],
         selectedZoneId: null
       }));
     }
@@ -685,14 +894,141 @@ const useDesignerStore = create((set, get) => ({
   
   clearCanvas: () => {
     set((state) => ({
-      pages: state.pages.map(p => 
-        p.id === state.currentPageId ? { ...p, zones: [] } : p
+      pages: state.pages.map(p =>
+        p.id === state.currentPageId ? { ...p, zones: [], annotations: [] } : p
       ),
+      selectedZoneIds: [],
       selectedZoneId: null,
       history: [],
-      historyIndex: -1
+      historyIndex: -1,
+      hasUnsavedChanges: true,
     }));
-  }
+  },
+
+  // ── Project management ──────────────────────────────────────────────────────
+
+  setProjectName: (name) => set({ projectName: name, hasUnsavedChanges: true }),
+  setProjectDescription: (desc) => set({ projectDescription: desc, hasUnsavedChanges: true }),
+
+  saveProject: async () => {
+    const state = get();
+    const token = localStorage.getItem('rd_token');
+    const isOffline = !token || token === 'offline';
+
+    set({ isSaving: true });
+
+    const projectData = {
+      name: state.projectName,
+      description: state.projectDescription,
+      pages: state.pages,
+      canvasSize: state.canvasSize,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const saveToLocalStorage = () => {
+      const raw = localStorage.getItem('rd_projects');
+      const projects = raw ? JSON.parse(raw) : [];
+      const currentId = get().projectId;
+      if (currentId) {
+        const idx = projects.findIndex(p => p.id === currentId);
+        if (idx >= 0) {
+          projects[idx] = { ...projects[idx], ...projectData };
+        } else {
+          projects.push({ id: currentId, ...projectData, createdAt: projectData.updatedAt });
+        }
+      } else {
+        const newId = `proj_${uuidv4().slice(0, 8)}`;
+        projects.push({ id: newId, ...projectData, createdAt: projectData.updatedAt });
+        set({ projectId: newId });
+      }
+      localStorage.setItem('rd_projects', JSON.stringify(projects));
+    };
+
+    try {
+      if (isOffline) {
+        saveToLocalStorage();
+      } else {
+        const BASE = 'http://localhost:8000';
+        const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+        try {
+          if (state.projectId) {
+            await fetch(`${BASE}/api/projects/${state.projectId}`, {
+              method: 'PUT', headers, body: JSON.stringify(projectData),
+            });
+          } else {
+            const res = await fetch(`${BASE}/api/projects`, {
+              method: 'POST', headers,
+              body: JSON.stringify({ name: state.projectName, description: state.projectDescription }),
+            });
+            const created = await res.json();
+            await fetch(`${BASE}/api/projects/${created.id}`, {
+              method: 'PUT', headers, body: JSON.stringify({ ...projectData }),
+            });
+            set({ projectId: created.id });
+          }
+        } catch {
+          // Backend not available — fall back to localStorage
+          saveToLocalStorage();
+        }
+      }
+      set({ isSaving: false, lastSaved: new Date(), hasUnsavedChanges: false });
+    } catch {
+      set({ isSaving: false });
+      throw new Error('Error al guardar');
+    }
+  },
+
+  loadProjectData: (project) => {
+    const firstPageId = project.pages?.[0]?.id || null;
+    set({
+      projectId: project.id,
+      projectName: project.name || 'Sin título',
+      projectDescription: project.description || '',
+      pages: project.pages || [createDefaultPage(generatePageId(), 'Página 1')],
+      canvasSize: project.canvasSize || { width: 1280, height: 720 },
+      currentPageId: firstPageId,
+      selectedZoneIds: [],
+      selectedZoneId: null,
+      hasUnsavedChanges: false,
+      lastSaved: project.updatedAt ? new Date(project.updatedAt) : null,
+      history: [],
+      historyIndex: -1,
+    });
+  },
+
+  newProject: () => {
+    const defaultPageId = generatePageId();
+    set({
+      projectId: null,
+      projectName: 'Sin título',
+      projectDescription: '',
+      pages: [createDefaultPage(defaultPageId, 'Página 1')],
+      currentPageId: defaultPageId,
+      selectedZoneIds: [],
+      selectedZoneId: null,
+      hasUnsavedChanges: false,
+      lastSaved: null,
+      history: [],
+      historyIndex: -1,
+    });
+  },
+
+  // List projects (offline)
+  getOfflineProjects: () => {
+    try {
+      return JSON.parse(localStorage.getItem('rd_projects') || '[]');
+    } catch {
+      return [];
+    }
+  },
+
+  // Delete project (offline)
+  deleteOfflineProject: (id) => {
+    try {
+      const projects = JSON.parse(localStorage.getItem('rd_projects') || '[]');
+      localStorage.setItem('rd_projects', JSON.stringify(projects.filter(p => p.id !== id)));
+    } catch {}
+  },
 }));
 
 export default useDesignerStore;

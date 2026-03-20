@@ -16,11 +16,15 @@ import {
   Type,
   Search,
   Layers,
-  LayoutTemplate
+  LayoutTemplate,
+  ChevronDown,
+  ChevronRight,
+  Wand2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import useDesignerStore, { ZONE_TYPES, LAYOUT_TEMPLATES } from "@/store/designerStore";
 import { toast } from "sonner";
 
@@ -41,16 +45,19 @@ const iconMap = {
   Type
 };
 
+const FRECUENTES = ['bar_chart', 'line_chart', 'kpi_card', 'table', 'filter_dropdown'];
+
 const categoryOrder = [
-  { key: 'charts', label: 'Gráficos', types: ['bar_chart', 'line_chart', 'area_chart', 'stacked_bar', 'horizontal_bar', 'pie_chart', 'donut_chart'] },
-  { key: 'data', label: 'Datos', types: ['kpi_card', 'table'] },
-  { key: 'controls', label: 'Controles', types: ['filter_dropdown'] },
-  { key: 'layout', label: 'Layout', types: ['header', 'nav_tabs', 'text_box', 'card'] },
+  { key: 'charts', label: 'Más gráficos', types: ['area_chart', 'stacked_bar', 'horizontal_bar', 'pie_chart', 'donut_chart'] },
+  { key: 'layout', label: 'Layout y texto', types: ['header', 'nav_tabs', 'text_box', 'card'] },
 ];
 
-const Sidebar = ({ onOpenTemplates }) => {
+const Sidebar = ({ onOpenTemplates, onOpenWizard }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [collapsed, setCollapsed] = useState({});
   const { addZone } = useDesignerStore();
+
+  const toggleCollapse = (key) => setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
 
   const handleAddZone = (type) => {
     addZone(type);
@@ -91,7 +98,22 @@ const Sidebar = ({ onOpenTemplates }) => {
 
         {/* Elements Tab */}
         <TabsContent value="elements" className="flex-1 flex flex-col mt-0">
-          <div className="p-3 pb-2">
+          {/* Wizard shortcut */}
+          {onOpenWizard && (
+            <div className="px-3 pt-3 pb-1">
+              <button
+                onClick={onOpenWizard}
+                className="w-full flex items-center gap-2 p-2.5 rounded-lg bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 hover:border-indigo-400/60 transition-colors group"
+              >
+                <Wand2 className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+                <span className="text-xs font-medium text-indigo-300 group-hover:text-indigo-200">
+                  Generar layout automático
+                </span>
+              </button>
+            </div>
+          )}
+
+          <div className="px-3 pt-2 pb-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a1a1aa]" />
               <Input
@@ -105,41 +127,72 @@ const Sidebar = ({ onOpenTemplates }) => {
           </div>
 
           <ScrollArea className="flex-1 sidebar-scroll">
-            <div className="p-3 pt-0 space-y-4">
+            <div className="px-3 pb-3 space-y-3">
+              {/* Frequently used — always visible */}
+              {!searchQuery && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-[#6b7280] mb-2">
+                    Más usados
+                  </div>
+                  <div className="space-y-1">
+                    {FRECUENTES.map(type => {
+                      const config = ZONE_TYPES[type];
+                      if (!config) return null;
+                      const IconComponent = iconMap[config.icon] || Square;
+                      return (
+                        <ElementItem
+                          key={type}
+                          type={type}
+                          config={config}
+                          IconComponent={IconComponent}
+                          onDragStart={handleDragStart}
+                          onAdd={handleAddZone}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Collapsible categories */}
               {categoryOrder.map(category => {
                 const types = filteredBySearch(category.types);
                 if (types.length === 0) return null;
-                
+                const isOpen = searchQuery ? true : !collapsed[category.key];
+
                 return (
                   <div key={category.key}>
-                    <div className="text-[10px] uppercase tracking-wider text-[#6b7280] mb-2">
-                      {category.label}
-                    </div>
-                    <div className="space-y-1">
-                      {types.map(type => {
-                        const config = ZONE_TYPES[type];
-                        if (!config) return null;
-                        const IconComponent = iconMap[config.icon] || Square;
-                        
-                        return (
-                          <div
-                            key={type}
-                            data-testid={`element-${type}`}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, type)}
-                            onClick={() => handleAddZone(type)}
-                            className="flex items-center gap-3 p-2 rounded-lg cursor-grab active:cursor-grabbing hover:bg-[#2d2d3b] transition-colors group"
-                          >
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#3d3d4b]">
-                              <IconComponent className="w-4 h-4 text-[#a1a1aa]" />
-                            </div>
-                            <span className="text-sm text-[#e2e2e2] group-hover:text-white transition-colors">
-                              {config.label}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <button
+                      onClick={() => toggleCollapse(category.key)}
+                      className="w-full flex items-center justify-between mb-2 group"
+                    >
+                      <span className="text-[10px] uppercase tracking-wider text-[#6b7280] group-hover:text-[#a1a1aa] transition-colors">
+                        {category.label}
+                      </span>
+                      {searchQuery ? null : isOpen
+                        ? <ChevronDown className="w-3 h-3 text-[#6b7280]" />
+                        : <ChevronRight className="w-3 h-3 text-[#6b7280]" />
+                      }
+                    </button>
+                    {isOpen && (
+                      <div className="space-y-1">
+                        {types.map(type => {
+                          const config = ZONE_TYPES[type];
+                          if (!config) return null;
+                          const IconComponent = iconMap[config.icon] || Square;
+                          return (
+                            <ElementItem
+                              key={type}
+                              type={type}
+                              config={config}
+                              IconComponent={IconComponent}
+                              onDragStart={handleDragStart}
+                              onAdd={handleAddZone}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -148,7 +201,7 @@ const Sidebar = ({ onOpenTemplates }) => {
 
           <div className="p-3 border-t border-[#2d2d3b]">
             <p className="text-[10px] text-[#a1a1aa] text-center">
-              Arrastra o haz clic para agregar
+              Arrastrá o hacé clic para agregar
             </p>
           </div>
         </TabsContent>
@@ -167,6 +220,23 @@ const Sidebar = ({ onOpenTemplates }) => {
     </aside>
   );
 };
+
+const ElementItem = ({ type, config, IconComponent, onDragStart, onAdd }) => (
+  <div
+    data-testid={`element-${type}`}
+    draggable
+    onDragStart={(e) => onDragStart(e, type)}
+    onClick={() => onAdd(type)}
+    className="flex items-center gap-3 p-2 rounded-lg cursor-grab active:cursor-grabbing hover:bg-[#2d2d3b] transition-colors group"
+  >
+    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#3d3d4b] flex-shrink-0">
+      <IconComponent className="w-4 h-4 text-[#a1a1aa]" />
+    </div>
+    <span className="text-sm text-[#e2e2e2] group-hover:text-white transition-colors">
+      {config.label}
+    </span>
+  </div>
+);
 
 const TemplateCard = ({ template }) => {
   const { loadTemplate, setBackground } = useDesignerStore();
