@@ -6,7 +6,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, AlignStartVertical,
   AlignCenterVertical, AlignEndVertical, MoreHorizontal,
   MessageSquare, AlignHorizontalSpaceAround, AlignVerticalSpaceAround,
-  LogOut, Save, FolderOpen,
+  LogOut, Save, FolderOpen, ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,13 +21,15 @@ import {
 import useDesignerStore, { CANVAS_SIZES } from "@/store/designerStore";
 import ExportDialog from "./ExportDialog";
 import ProjectsModal from "./ProjectsModal";
+import AdminPanel from "@/pages/AdminPanel";
 import { useAuth } from "@/context/AuthContext";
 
 const Toolbar = () => {
   const [exportOpen, setExportOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
-  const { logout, user } = useAuth();
+  const { logout, user, isAdmin } = useAuth();
 
   const {
     canvasSize, setCanvasSize,
@@ -435,9 +437,22 @@ const Toolbar = () => {
 
         {/* Right - User + Export */}
         <div className="flex items-center gap-2">
-          {/* User info + logout */}
+          {/* User info + admin + logout */}
           {user && (
             <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm"
+                      onClick={() => setAdminOpen(true)}
+                      className="h-8 px-2 gap-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-[#3d3d4b]">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span className="text-xs hidden sm:block">Admin</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Panel de administración</TooltipContent>
+                </Tooltip>
+              )}
               <span className="text-[#8b8ba8] text-xs hidden sm:block">{user}</span>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -486,6 +501,7 @@ const Toolbar = () => {
 
       <ExportDialog open={exportOpen} onOpenChange={setExportOpen} />
       <ProjectsModal open={projectsOpen} onClose={() => setProjectsOpen(false)} />
+      {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
     </TooltipProvider>
   );
 };

@@ -49,14 +49,15 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     username: str
+    role: str = "user"
 
 # ============== AUTH HELPERS ==============
 
-def create_access_token(username: str) -> str:
+def create_access_token(username: str, role: str = "user") -> str:
     expire = datetime.utcnow() + timedelta(hours=TOKEN_EXPIRE_HOURS)
-    return jwt.encode({"sub": username, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode({"sub": username, "role": role, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> str:
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> dict:
     if not credentials:
         raise HTTPException(status_code=401, detail="No autenticado")
     try:
@@ -64,26 +65,36 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(b
         username = payload.get("sub")
         if not username:
             raise HTTPException(status_code=401, detail="Token inválido")
-        return username
+        return {"username": username, "role": payload.get("role", "user")}
     except JWTError:
         raise HTTPException(status_code=401, detail="Token inválido o expirado")
+
+async def require_admin(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Se requieren permisos de administrador")
+    return current_user
 
 # ============== AUTH ENDPOINTS ==============
 
 @auth_router.post("/register", response_model=Token)
 async def register(input: UserCreate):
-    """Create a new user account"""
+    """Create a new user account. El primero en registrarse es admin automáticamente."""
     existing = await db.users.find_one({"username": input.username}, {"_id": 0})
     if existing:
         raise HTTPException(status_code=400, detail="El usuario ya existe")
+    # First user ever becomes admin
+    user_count = await db.users.count_documents({})
+    role = "admin" if user_count == 0 else "user"
     hashed = pwd_context.hash(input.password)
     await db.users.insert_one({
         "username": input.username,
         "hashed_password": hashed,
+        "role": role,
+        "is_active": True,
         "created_at": datetime.now(timezone.utc).isoformat()
     })
-    token = create_access_token(input.username)
-    return Token(access_token=token, username=input.username)
+    token = create_access_token(input.username, role)
+    return Token(access_token=token, username=input.username, role=role)
 
 @auth_router.post("/login", response_model=Token)
 async def login(input: UserLogin):
@@ -91,13 +102,75 @@ async def login(input: UserLogin):
     user = await db.users.find_one({"username": input.username}, {"_id": 0})
     if not user or not pwd_context.verify(input.password, user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
-    token = create_access_token(input.username)
-    return Token(access_token=token, username=input.username)
+    if not user.get("is_active", True):
+        raise HTTPException(status_code=403, detail="Usuario desactivado. Contactá al administrador.")
+    role = user.get("role", "user")
+    token = create_access_token(input.username, role)
+    return Token(access_token=token, username=input.username, role=role)
 
 @auth_router.get("/me")
-async def me(current_user: str = Depends(get_current_user)):
+async def me(current_user: dict = Depends(get_current_user)):
     """Get current logged-in user info"""
-    return {"username": current_user}
+    user = await db.users.find_one({"username": current_user["username"]}, {"_id": 0, "hashed_password": 0})
+    return user or current_user
+
+# ============== ADMIN ENDPOINTS ==============
+
+@auth_router.get("/admin/users")
+async def list_users(current_user: dict = Depends(require_admin)):
+    """List all users (admin only)"""
+    users = await db.users.find({}, {"_id": 0, "hashed_password": 0}).to_list(1000)
+    return users
+
+@auth_router.put("/admin/users/{username}/role")
+async def update_user_role(username: str, body: dict, current_user: dict = Depends(require_admin)):
+    """Change a user's role (admin only)"""
+    if username == current_user["username"]:
+        raise HTTPException(status_code=400, detail="No podés cambiar tu propio rol")
+    new_role = body.get("role")
+    if new_role not in ("admin", "user"):
+        raise HTTPException(status_code=400, detail="Rol inválido")
+    result = await db.users.update_one({"username": username}, {"$set": {"role": new_role}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return {"ok": True}
+
+@auth_router.put("/admin/users/{username}/status")
+async def update_user_status(username: str, body: dict, current_user: dict = Depends(require_admin)):
+    """Activate or deactivate a user (admin only)"""
+    if username == current_user["username"]:
+        raise HTTPException(status_code=400, detail="No podés desactivarte a vos mismo")
+    is_active = body.get("is_active", True)
+    result = await db.users.update_one({"username": username}, {"$set": {"is_active": is_active}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return {"ok": True}
+
+@auth_router.delete("/admin/users/{username}")
+async def delete_user(username: str, current_user: dict = Depends(require_admin)):
+    """Delete a user (admin only)"""
+    if username == current_user["username"]:
+        raise HTTPException(status_code=400, detail="No podés eliminarte a vos mismo")
+    result = await db.users.delete_one({"username": username})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return {"ok": True}
+
+@auth_router.post("/admin/users")
+async def create_user_as_admin(input: UserCreate, current_user: dict = Depends(require_admin)):
+    """Admin creates a user directly (no self-registration needed)"""
+    existing = await db.users.find_one({"username": input.username})
+    if existing:
+        raise HTTPException(status_code=400, detail="El usuario ya existe")
+    hashed = pwd_context.hash(input.password)
+    await db.users.insert_one({
+        "username": input.username,
+        "hashed_password": hashed,
+        "role": "user",
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    return {"ok": True, "username": input.username}
 
 # ============== MODELS ==============
 
@@ -188,13 +261,13 @@ async def root():
     return {"message": "Power BI Mockup Tool API"}
 
 @api_router.get("/projects", response_model=List[Project])
-async def get_projects(current_user: str = Depends(get_current_user)):
+async def get_projects(current_user: dict = Depends(get_current_user)):
     """Get all projects"""
     projects = await db.projects.find({}, {"_id": 0}).to_list(1000)
     return [deserialize_project(p) for p in projects]
 
 @api_router.post("/projects", response_model=Project)
-async def create_project(input: ProjectCreate, current_user: str = Depends(get_current_user)):
+async def create_project(input: ProjectCreate, current_user: dict = Depends(get_current_user)):
     """Create a new project"""
     project = Project(
         name=input.name,
@@ -208,7 +281,7 @@ async def create_project(input: ProjectCreate, current_user: str = Depends(get_c
     return project
 
 @api_router.get("/projects/{project_id}", response_model=Project)
-async def get_project(project_id: str, current_user: str = Depends(get_current_user)):
+async def get_project(project_id: str, current_user: dict = Depends(get_current_user)):
     """Get a specific project"""
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
     if not project:
@@ -216,7 +289,7 @@ async def get_project(project_id: str, current_user: str = Depends(get_current_u
     return deserialize_project(project)
 
 @api_router.put("/projects/{project_id}", response_model=Project)
-async def update_project(project_id: str, input: ProjectUpdate, current_user: str = Depends(get_current_user)):
+async def update_project(project_id: str, input: ProjectUpdate, current_user: dict = Depends(get_current_user)):
     """Update a project"""
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
     if not project:
@@ -234,7 +307,7 @@ async def update_project(project_id: str, input: ProjectUpdate, current_user: st
     return deserialize_project(updated)
 
 @api_router.delete("/projects/{project_id}")
-async def delete_project(project_id: str, current_user: str = Depends(get_current_user)):
+async def delete_project(project_id: str, current_user: dict = Depends(get_current_user)):
     """Delete a project"""
     result = await db.projects.delete_one({"id": project_id})
     if result.deleted_count == 0:

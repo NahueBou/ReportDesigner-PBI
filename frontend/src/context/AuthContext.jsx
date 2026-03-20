@@ -2,43 +2,50 @@ import { createContext, useContext, useState } from 'react';
 
 export const AuthContext = createContext(null);
 
-function parseUsernameFromToken(token) {
-  if (token === 'offline') return localStorage.getItem('rd_username');
+function parsePayloadFromToken(token) {
+  if (token === 'offline') return { username: localStorage.getItem('rd_username'), role: 'user' };
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.sub || null;
+    return { username: payload.sub || null, role: payload.role || 'user' };
   } catch {
     return null;
   }
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
+  const [auth, setAuth] = useState(() => {
     const token = localStorage.getItem('rd_token');
     if (!token) return null;
-    return parseUsernameFromToken(token);
+    return parsePayloadFromToken(token);
   });
 
-  const login = (token, username) => {
+  const login = (token, username, role = 'user') => {
     localStorage.setItem('rd_token', token);
     localStorage.setItem('rd_username', username);
-    setUser(username);
+    setAuth({ username, role });
   };
 
   const loginOffline = (username) => {
     localStorage.setItem('rd_token', 'offline');
     localStorage.setItem('rd_username', username);
-    setUser(username);
+    setAuth({ username, role: 'user' });
   };
 
   const logout = () => {
     localStorage.removeItem('rd_token');
     localStorage.removeItem('rd_username');
-    setUser(null);
+    setAuth(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, loginOffline, logout }}>
+    <AuthContext.Provider value={{
+      user: auth?.username ?? null,
+      role: auth?.role ?? null,
+      isAdmin: auth?.role === 'admin',
+      login,
+      loginOffline,
+      logout,
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -37,7 +37,7 @@ export default function LoginPage() {
         return;
       }
 
-      login(data.access_token, data.username);
+      login(data.access_token, data.username, data.role);
     } catch {
       // Backend no disponible → ofrecer modo offline
       setMode('offline');
